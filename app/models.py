@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, BigInteger, String, Date, Text, TIMESTAMP, MetaData, ForeignKey, JSON, \
-    UniqueConstraint, Boolean, Float
+    UniqueConstraint, Boolean, Float, Integer
 from sqlalchemy.sql import func
 
 metadata = MetaData()
@@ -54,4 +54,23 @@ news_keywords = Table(
     Column("created_at",TIMESTAMP(timezone=True),server_default=func.current_timestamp(),nullable=False),
     Column("updated_at",TIMESTAMP(timezone=True),server_default=func.current_timestamp(),nullable=False),
     UniqueConstraint("news_id", "keyword", "method", name="uq_news_keywords"),
+)
+
+news_event = Table(
+    "news_event",
+    metadata,
+    Column("id", BigInteger, primary_key=True),
+    Column("event_date", Date),
+    Column("cluster_id", BigInteger),
+    Column("news_count", Integer),
+    Column("score", Float),
+    Column("created_at", TIMESTAMP(timezone=True)),
+    Column("updated_at", TIMESTAMP(timezone=True)),
+)
+
+news_event_item = Table(
+    "news_event_item",
+    metadata,
+    Column("event_id", BigInteger),
+    Column("news_id", BigInteger),
 )
