@@ -1,3 +1,4 @@
+import logging
 import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
@@ -6,6 +7,8 @@ from wordfreq_cn import generate_trend_wordcloud, extract_keywords_tfidf_per_doc
 
 from ..config import settings
 from ..utils.cleaner import clean_html
+
+logger = logging.getLogger(__name__)
 
 executor = ThreadPoolExecutor(max_workers=2)
 
@@ -159,7 +162,7 @@ from sklearn.cluster import MiniBatchKMeans
 
 
 def embedding_cluster_pipeline(
-        texts: list[str],
+        texts: list[str | Any],  # 放宽类型提示，允许任何类型
         n_clusters: int = 50,
         max_features: int = 512,
         random_state: int = 42,
@@ -173,27 +176,84 @@ def embedding_cluster_pipeline(
     """
 
     if not texts:
-        return [], ""
+        return [], "no_texts"
 
-    # 1. TF-IDF embedding（仅作为中间变量）
-    vectorizer = TfidfVectorizer(
-        max_features=max_features,
-        ngram_range=(1, 2),
-        min_df=2,
-        max_df=0.95,
-    )
-    X = vectorizer.fit_transform(texts)
+    # 1. 数据清洗和验证
+    cleaned_texts = []
+    invalid_indices = []  # 记录无效文本的索引
 
-    # 2. MiniBatchKMeans 聚类
-    kmeans = MiniBatchKMeans(
-        n_clusters=min(n_clusters, X.shape[0]),
-        batch_size=64,
-        random_state=random_state,
-        max_iter=100,
-    )
-    cluster_ids = kmeans.fit_predict(X).tolist()
+    for i, text in enumerate(texts):
+        try:
+            # 处理 None 值
+            if text is None:
+                cleaned_texts.append('')
+                invalid_indices.append(i)
+                continue
 
-    # 3. 方法标识（业务需要）
-    cluster_method = f"tfidf-{max_features}-kmeans"
+            # 转换为字符串并清理
+            text_str = str(text).strip()
 
-    return cluster_ids, cluster_method
+            # 检查是否是浮点数的字符串表示（如 'nan', 'inf'）
+            if text_str.lower() in ['nan', 'inf', '-inf'] or text_str == '':
+                cleaned_texts.append('')
+                invalid_indices.append(i)
+            else:
+                cleaned_texts.append(text_str)
+
+        except Exception as e:
+            logger.warning(f"Failed to process text at index {i}: {type(text)} - {text}. Error: {e}")
+            cleaned_texts.append('')
+            invalid_indices.append(i)
+
+    # 记录警告信息
+    if invalid_indices:
+        logger.warning(f"Found {len(invalid_indices)} invalid/non-string texts at indices: {invalid_indices[:10]}...")
+
+    # 2. 如果所有文本都无效，返回空结果
+    if not any(cleaned_texts):  # 所有文本都是空字符串
+        return [], "all_texts_invalid"
+
+    # 3. TF-IDF embedding
+    try:
+        vectorizer = TfidfVectorizer(
+            max_features=max_features,
+            ngram_range=(1, 2),
+            min_df=2,
+            max_df=0.95,
+        )
+        X = vectorizer.fit_transform(cleaned_texts)
+
+        # 4. MiniBatchKMeans 聚类
+        # 确保聚类数不超过样本数
+        n_samples = X.shape[0]
+        actual_n_clusters = min(n_clusters, n_samples)
+
+        if actual_n_clusters < 2:
+            logger.warning(f"Not enough samples for clustering. Samples: {n_samples}, Requested clusters: {n_clusters}")
+            # 返回所有样本为同一簇或空簇
+            if n_samples > 0:
+                cluster_ids = [0] * n_samples
+                return cluster_ids, "single_cluster_due_to_insufficient_samples"
+            else:
+                return [], "no_samples"
+
+        kmeans = MiniBatchKMeans(
+            n_clusters=actual_n_clusters,
+            batch_size=min(64, n_samples),
+            random_state=random_state,
+            max_iter=100,
+        )
+        cluster_ids = kmeans.fit_predict(X).tolist()
+
+        # 5. 方法标识
+        cluster_method = f"tfidf-{max_features}-kmeans-{actual_n_clusters}clusters"
+
+        return cluster_ids, cluster_method
+
+    except Exception as e:
+        logger.error(f"Error in embedding_cluster_pipeline: {e}", exc_info=True)
+        # 返回默认值而不是抛出异常，避免整个API崩溃
+        if cleaned_texts:
+            return [0] * len(cleaned_texts), f"error_fallback_{type(e).__name__}"
+        else:
+            return [], f"error_{type(e).__name__}"
