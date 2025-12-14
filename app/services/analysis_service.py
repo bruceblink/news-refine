@@ -217,9 +217,10 @@ def embedding_cluster_pipeline(
     try:
         vectorizer = TfidfVectorizer(
             max_features=max_features,
-            ngram_range=(1, 2),
+            ngram_range=(2, 3),
             min_df=2,
-            max_df=0.95,
+            max_df=0.9,
+            sublinear_tf=True,
         )
         X = vectorizer.fit_transform(cleaned_texts)
 
