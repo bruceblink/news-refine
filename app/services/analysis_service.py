@@ -109,8 +109,8 @@ def build_news_item_from_news_info(news: list[dict]) -> list[dict]:
             result.append({
                 "item_id": str(item.get("id", "")),
                 "news_info_id": news_info_id,
-                "title": item.get("title", ""),
-                "url": item.get("url", ""),
+                "title": str(item.get("title") or ""),
+                "url": str(item.get("url") or ""),
                 "published_at": published_at,
                 "source": source,
             })
