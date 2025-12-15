@@ -30,7 +30,7 @@ else:
 engine = create_async_engine(
     re.sub(r'^postgresql:', 'postgresql+asyncpg:', DATABASE_URL),
     # 根据环境决定是否打印SQL日志：开发/测试环境开启，生产环境关闭
-    echo=ENVIRONMENT in ["development", "dev", "testing", "test", "staging"],
+    echo=ENVIRONMENT in ["development", "dev", "testing", "test", "staging", "local"],
     # 连接池配置：防止连接超时被服务器断开
     pool_recycle=300,           # 秒，连接在池中存活时间，应小于数据库的wait_timeout
     pool_pre_ping=True,         # 每次从池中取连接前执行简单SQL检查，确保连接有效
