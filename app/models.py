@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, BigInteger, String, Date, Text, TIMESTAMP, MetaData, ForeignKey, JSON, \
-    UniqueConstraint, Boolean, Float, Integer
+    UniqueConstraint, Boolean, Float, Integer, SmallInteger
 from sqlalchemy.sql import func
 
 metadata = MetaData()
@@ -59,7 +59,7 @@ news_keywords = Table(
 news_event = Table(
     "news_event",
     metadata,
-    Column("id", BigInteger, primary_key=True),
+    Column("id", BigInteger, primary_key=True, autoincrement=True),
     Column("event_date", Date),
     Column("cluster_id", BigInteger),
     Column("title", Text, nullable=False),
@@ -77,4 +77,19 @@ news_event_item = Table(
     metadata,
     Column("event_id", BigInteger),
     Column("news_id", BigInteger),
+)
+
+
+news_event_pipeline_run = Table(
+    "news_event_pipeline_run",
+    metadata,
+    Column("id", BigInteger, primary_key=True, autoincrement=True),
+    Column("step_name", String(100), nullable=False),
+    Column("event_date", Date),
+    Column("affected_rows", Integer),
+    Column("cost_ms", Integer),
+    Column("status", SmallInteger, nullable=False, server_default=0),
+    Column("message", Text),
+    Column("created_at", TIMESTAMP(timezone=True), server_default=func.current_timestamp()),
+    Column("updated_at", TIMESTAMP(timezone=True), server_default=func.current_timestamp()),
 )
