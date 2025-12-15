@@ -106,7 +106,7 @@ async def step3_fill_event_title_and_summary(
         .where(news_event.c.id == rep_news_subq.c.event_id)
         .values(
             title=rep_news_subq.c.title,
-            summary=rep_news_subq.c.content[:summary_len],
+            summary=rep_news_subq.c.content,
         )
     )
 
