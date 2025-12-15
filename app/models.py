@@ -70,6 +70,7 @@ news_event = Table(
     Column("parent_event_id", BigInteger, ForeignKey("news_event.id"), nullable=True),
     Column("created_at", TIMESTAMP(timezone=True)),
     Column("updated_at", TIMESTAMP(timezone=True)),
+    Column("merge_at", TIMESTAMP(timezone=True)),
 )
 
 news_event_item = Table(
