@@ -6,7 +6,8 @@ from typing import Any
 from wordfreq_cn import generate_trend_wordcloud, extract_keywords_tfidf_per_doc
 
 from ..config import settings
-from ..dao import query_news_events, count_news_events, get_news_event_by_id, list_news_items_by_event
+from ..dao import query_news_events, count_news_events, get_news_event_by_id, list_news_items_by_event, \
+    merge_cross_day_events
 from ..db import AsyncSessionLocal
 from ..utils import clean_html
 
@@ -298,3 +299,12 @@ async def get_news_event_detail(
                 "event": event,
                 "news_items": items,
             }
+
+
+async def merge_cross_day_events_task(
+        event_date,
+        lookback_days: int = 2,
+):
+    async with AsyncSessionLocal() as session:
+        async with session.begin():   # ← ★ 事务开始
+            await merge_cross_day_events(session, event_date, lookback_days)

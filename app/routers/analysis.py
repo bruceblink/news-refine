@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel, Field, field_validator
@@ -8,7 +8,7 @@ from ..dao.news_item_dao import fetch_news_item_rows_not_extracted
 from ..services import extract_keywords_task
 from ..services.analysis_service import (
     async_tfidf_top, build_news_item_from_news_info, embedding_cluster_pipeline, list_news_events,
-    get_news_event_detail,
+    get_news_event_detail, merge_cross_day_events_task,
 )
 from ..services.extract_news_service import extract_news_items_task, extract_news_event_task
 
@@ -139,6 +139,19 @@ async def get_event_detail(
         raise HTTPException(status_code=404, detail="Event not found")
 
     return data
+
+
+@router.post("/merge_event", summary="合并新闻event")
+async def merge_cross_day_news_events():
+    """
+     执行提取新闻事件的作业
+    :return:
+    """
+    def get_yesterday() -> date:
+        return date.today() - timedelta(days=1)
+    yesterday = get_yesterday()
+    await merge_cross_day_events_task(yesterday)
+    return {"status": "ok", "msgs": "merge_event success"}
 
 
 # class WordcloudQuery(TFIDFQuery):

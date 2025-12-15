@@ -181,9 +181,6 @@ async def merge_cross_day_events(
                 parent_event_id=parent["id"],
             )
 
-    # 4. 提交事务
-    await session.commit()
-
 
 async def query_news_events(
         session: AsyncSession,
