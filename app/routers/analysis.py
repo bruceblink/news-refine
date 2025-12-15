@@ -142,16 +142,21 @@ async def get_event_detail(
 
 
 @router.post("/merge_event", summary="合并新闻event")
-async def merge_cross_day_news_events():
+async def merge_cross_day_news_events( days: int = 2,):
     """
-     执行提取新闻事件的作业
+     合并最近 N 天的事件（默认 2 天）
     :return:
     """
-    def get_yesterday() -> date:
-        return date.today() - timedelta(days=1)
-    yesterday = get_yesterday()
-    await merge_cross_day_events_task(yesterday)
-    return {"status": "ok", "msgs": "merge_event success"}
+    today = date.today()
+
+    for i in range(1, days + 1):
+        event_date = today - timedelta(days=i)
+        await merge_cross_day_events_task(event_date)
+
+    return {
+        "status": "ok",
+        "msg": f"merge_event success, days={today}"
+    }
 
 
 # class WordcloudQuery(TFIDFQuery):
