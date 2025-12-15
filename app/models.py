@@ -62,6 +62,8 @@ news_event = Table(
     Column("id", BigInteger, primary_key=True),
     Column("event_date", Date),
     Column("cluster_id", BigInteger),
+    Column("title", Text, nullable=False),
+    Column("summary", Text, nullable=False),
     Column("news_count", Integer),
     Column("score", Float),
     Column("created_at", TIMESTAMP(timezone=True)),
