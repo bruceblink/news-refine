@@ -1,4 +1,4 @@
-from sqlalchemy import select, func, update
+from sqlalchemy import select, update, func, cast, Float
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,7 +70,6 @@ async def step2_insert_news_event_item(session: AsyncSession) -> None:
 
 async def step3_fill_event_title_and_summary(
         session: AsyncSession,
-        summary_len: int = 300,
 ) -> None:
     """
     为 news_event 回填 title / summary
@@ -107,6 +106,34 @@ async def step3_fill_event_title_and_summary(
         .values(
             title=rep_news_subq.c.title,
             summary=rep_news_subq.c.content,
+        )
+    )
+
+    await session.execute(stmt)
+
+
+async def step4_update_event_score(
+        session: AsyncSession,
+        decay_days: float = 5.0,
+):
+    """
+    计算并更新 news_event.score
+
+    score = ln(news_count + 1) * exp(-(today - event_date) / decay_days)
+    """
+
+    stmt = (
+        update(news_event)
+        .values(
+            score=
+            func.ln(news_event.c.news_count + 1)
+            * func.exp(
+                -cast(
+                    func.current_date() - news_event.c.event_date,
+                    Float,
+                    ) / decay_days
+            ),
+            updated_at=func.now(),
         )
     )
 
