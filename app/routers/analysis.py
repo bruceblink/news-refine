@@ -9,7 +9,7 @@ from ..services import extract_keywords_task
 from ..services.analysis_service import (
     async_tfidf_top, build_news_item_from_news_info, embedding_cluster_pipeline,
 )
-from ..services.extract_news_service import extract_news_items_task
+from ..services.extract_news_service import extract_news_items_task, extract_news_event_task
 
 router = APIRouter(prefix="/api/analysis")
 
@@ -100,6 +100,16 @@ async def extract_tfidf_top_keywords(params: TFIDFQuery):
     # 执行提取关键字的事务作业
     await extract_keywords_task(tops)
     return {"status": "ok", "msgs": "generate success"}
+
+
+@router.post("/extract_event", summary="提取新闻event")
+async def extract_news_event():
+    """
+     执行提取新闻事件的作业
+    :return:
+    """
+    await extract_news_event_task()
+    return {"status": "ok", "msgs": "extract_event success"}
 
 
 # class WordcloudQuery(TFIDFQuery):
