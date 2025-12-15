@@ -67,6 +67,7 @@ news_event = Table(
     Column("news_count", Integer),
     Column("score", Float),
     Column("status", Integer),
+    Column("parent_event_id", BigInteger, ForeignKey("news_event.id"), nullable=True),
     Column("created_at", TIMESTAMP(timezone=True)),
     Column("updated_at", TIMESTAMP(timezone=True)),
 )
