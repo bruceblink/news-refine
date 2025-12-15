@@ -1,8 +1,11 @@
+from datetime import timedelta
+
 from sqlalchemy import select, desc, asc, update, func, cast, Float
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import news_item, news_event, news_event_item
+from app.utils import is_same_event
 
 
 async def step1_insert_news_event(session: AsyncSession) -> None:
@@ -140,6 +143,47 @@ async def step4_update_event_score(
     await session.execute(stmt)
 
 
+async def merge_cross_day_events(
+        session: AsyncSession,
+        event_date,
+        lookback_days: int = 2,
+):
+    """
+    合并跨天事件
+    :param session:
+    :param event_date:
+    :param lookback_days:
+    :return:
+    """
+    # 1. 获取当天新事件
+    new_events = await get_new_events(session, event_date)
+
+    if not new_events:
+        return
+
+    # 2. 获取历史主事件
+    candidate_parents = await get_candidate_parent_events(
+        session,
+        event_date,
+        lookback_days,
+    )
+
+    if not candidate_parents:
+        return
+
+    # 3. 逐个匹配
+    for event in new_events:
+        parent = _find_parent_event(event, candidate_parents)
+        if parent:
+            await attach_to_parent(
+                session,
+                child_event_id=event["id"],
+                parent_event_id=parent["id"],
+            )
+
+    # 4. 提交事务
+    await session.commit()
+
 
 async def query_news_events(
         session: AsyncSession,
@@ -260,3 +304,91 @@ async def list_news_items_by_event(
 
     result = await session.execute(stmt)
     return result.mappings().all()
+
+
+async def get_new_events(
+        session: AsyncSession,
+        event_date,
+):
+    """
+    获取「当天产生的新事件」
+    :param session:
+    :param event_date:
+    :return:
+    """
+    stmt = (
+        select(news_event)
+        .where(
+            news_event.c.event_date == event_date,
+            news_event.c.parent_event_id.is_(None),
+            )
+        .order_by(news_event.c.id)
+    )
+    result = await session.execute(stmt)
+    return result.mappings().all()
+
+
+async def get_candidate_parent_events(
+        session: AsyncSession,
+        current_event_date,
+        lookback_days: int = 2,
+):
+    """
+    获取「历史主事件候选」
+    :param session:
+    :param current_event_date:
+    :param lookback_days:
+    :return:
+    """
+    stmt = (
+        select(news_event)
+        .where(
+            news_event.c.parent_event_id.is_(None),
+            news_event.c.event_date >= current_event_date - timedelta(days=lookback_days),
+            news_event.c.event_date < current_event_date,
+            )
+        .order_by(news_event.c.event_date.desc())
+    )
+    result = await session.execute(stmt)
+    return result.mappings().all()
+
+
+def _find_parent_event(
+        event,
+        candidate_events,
+):
+    """
+    为单个事件寻找 parent
+    :param event:
+    :param candidate_events:
+    :return:
+    """
+    for parent in candidate_events:
+        if is_same_event(
+                event["title"],
+                event["summary"],
+                parent["title"],
+                parent["summary"],
+        ):
+            return parent
+    return None
+
+
+async def attach_to_parent(
+        session: AsyncSession,
+        child_event_id: int,
+        parent_event_id: int,
+):
+    """
+     更新 parent_event_id
+    :param session:
+    :param child_event_id:
+    :param parent_event_id:
+    :return:
+    """
+    stmt = (
+        update(news_event)
+        .where(news_event.c.id == child_event_id)
+        .values(parent_event_id=parent_event_id)
+    )
+    await session.execute(stmt)
