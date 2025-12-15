@@ -1,7 +1,5 @@
-from app.dao import save_news_keywords, update_news_item_extracted_state
-from app.dao.news_event_dao import step1_insert_news_event, step2_insert_news_event_item
-from app.dao.news_info_dao import update_news_info_extracted_state
-from app.dao.news_item_dao import save_news_items
+from app.dao import save_news_keywords, update_news_item_extracted_state, save_news_items, step1_insert_news_event, \
+    step2_insert_news_event_item, update_news_info_extracted_state
 from app.db import AsyncSessionLocal
 
 
