@@ -8,7 +8,8 @@ from .analysis_service import (
     async_tfidf_top,
     async_generate_wordcloud,
     embedding_cluster_pipeline,
-    list_news_events
+    list_news_events,
+    get_news_event_detail
 )
 from .extract_news_service import extract_keywords_task, extract_news_event_task
 
@@ -19,5 +20,6 @@ __all__ = [
     "extract_keywords_task",
     "embedding_cluster_pipeline",
     "extract_news_event_task",
-    "list_news_events"
+    "list_news_events",
+    "get_news_event_detail"
 ]

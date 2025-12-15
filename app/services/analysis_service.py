@@ -6,7 +6,7 @@ from typing import Any
 from wordfreq_cn import generate_trend_wordcloud, extract_keywords_tfidf_per_doc
 
 from ..config import settings
-from ..dao import query_news_events, count_news_events
+from ..dao import query_news_events, count_news_events, get_news_event_by_id, list_news_items_by_event
 from ..db import AsyncSessionLocal
 from ..utils.cleaner import clean_html
 
@@ -280,4 +280,21 @@ async def list_news_events(
                 "page": params["page"],
                 "page_size": params["page_size"],
                 "total": total,
+            }
+
+
+async def get_news_event_detail(
+        event_id: int,
+):
+    async with AsyncSessionLocal() as session:
+        async with session.begin():   # ← ★ 事务开始
+            event = await get_news_event_by_id(session, event_id)
+            if event is None:
+                return None
+
+            items = await list_news_items_by_event(session, event_id)
+
+            return {
+                "event": event,
+                "news_items": items,
             }

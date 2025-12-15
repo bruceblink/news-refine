@@ -212,3 +212,51 @@ async def count_news_events(
 
     result = await session.execute(stmt)
     return result.scalar_one()
+
+
+async def get_news_event_by_id(
+        session: AsyncSession,
+        event_id: int,
+):
+    stmt = (
+        select(
+            news_event.c.id,
+            news_event.c.event_date,
+            news_event.c.title,
+            news_event.c.summary,
+            news_event.c.news_count,
+            news_event.c.score,
+            news_event.c.status,
+        )
+        .where(news_event.c.id == event_id)
+    )
+
+    result = await session.execute(stmt)
+    return result.mappings().one_or_none()
+
+
+async def list_news_items_by_event(
+        session: AsyncSession,
+        event_id: int,
+):
+    stmt = (
+        select(
+            news_item.c.id,
+            news_item.c.title,
+            news_item.c.source,
+            news_item.c.published_at,
+            news_item.c.url,
+        )
+        .select_from(
+            news_event_item
+            .join(news_item, news_event_item.c.news_id == news_item.c.id)
+        )
+        .where(news_event_item.c.event_id == event_id)
+        .order_by(
+            asc(news_item.c.published_at),
+            asc(news_item.c.id),
+        )
+    )
+
+    result = await session.execute(stmt)
+    return result.mappings().all()
