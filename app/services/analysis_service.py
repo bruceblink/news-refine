@@ -8,7 +8,7 @@ from wordfreq_cn import generate_trend_wordcloud, extract_keywords_tfidf_per_doc
 from ..config import settings
 from ..dao import query_news_events, count_news_events, get_news_event_by_id, list_news_items_by_event
 from ..db import AsyncSessionLocal
-from ..utils.cleaner import clean_html
+from ..utils import clean_html
 
 logger = logging.getLogger(__name__)
 
