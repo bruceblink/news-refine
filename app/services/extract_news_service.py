@@ -1,5 +1,6 @@
 from app.dao import save_news_keywords, update_news_item_extracted_state, save_news_items, step1_insert_news_event, \
-    step2_insert_news_event_item, update_news_info_extracted_state, step3_fill_event_title_and_summary
+    step2_insert_news_event_item, update_news_info_extracted_state, step3_fill_event_title_and_summary, \
+    step4_update_event_score
 from app.db import AsyncSessionLocal
 
 
@@ -41,3 +42,4 @@ async def extract_news_event_task() -> None:
             await step1_insert_news_event(session)
             await step2_insert_news_event_item(session)
             await step3_fill_event_title_and_summary(session)
+            await step4_update_event_score(session)
