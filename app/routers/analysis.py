@@ -1,13 +1,13 @@
 from datetime import date
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field, field_validator
 
 from ..dao.news_info_dao import fetch_news_info_rows
 from ..dao.news_item_dao import fetch_news_item_rows_not_extracted
 from ..services import extract_keywords_task
 from ..services.analysis_service import (
-    async_tfidf_top, build_news_item_from_news_info, embedding_cluster_pipeline,
+    async_tfidf_top, build_news_item_from_news_info, embedding_cluster_pipeline, list_news_events,
 )
 from ..services.extract_news_service import extract_news_items_task, extract_news_event_task
 
@@ -110,6 +110,23 @@ async def extract_news_event():
     """
     await extract_news_event_task()
     return {"status": "ok", "msgs": "extract_event success"}
+
+
+@router.get("/events")
+async def get_news_events(
+        page: int = Query(1, ge=1),
+        page_size: int = Query(20, ge=1, le=100),
+        order_by: str = Query("score"),
+        order_desc: bool = Query(True),
+        status: int | None = Query(0),
+):
+    return await list_news_events(
+        page=page,
+        page_size=page_size,
+        order_by=order_by,
+        order_desc=order_desc,
+        status=status,
+    )
 
 
 # class WordcloudQuery(TFIDFQuery):

@@ -66,6 +66,7 @@ news_event = Table(
     Column("summary", Text, nullable=False),
     Column("news_count", Integer),
     Column("score", Float),
+    Column("status", Integer),
     Column("created_at", TIMESTAMP(timezone=True)),
     Column("updated_at", TIMESTAMP(timezone=True)),
 )

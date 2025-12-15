@@ -6,6 +6,8 @@ from typing import Any
 from wordfreq_cn import generate_trend_wordcloud, extract_keywords_tfidf_per_doc
 
 from ..config import settings
+from ..dao import query_news_events, count_news_events
+from ..db import AsyncSessionLocal
 from ..utils.cleaner import clean_html
 
 logger = logging.getLogger(__name__)
@@ -258,3 +260,24 @@ def embedding_cluster_pipeline(
             return [0] * len(cleaned_texts), f"error_fallback_{type(e).__name__}"
         else:
             return [], f"error_{type(e).__name__}"
+
+
+async def list_news_events(
+        **params,
+):
+    async with AsyncSessionLocal() as session:
+        async with session.begin():   # ← ★ 事务开始
+            items = await query_news_events(session, **params)
+            total = await count_news_events(
+                session,
+                status=params.get("status"),
+                start_date=params.get("start_date"),
+                end_date=params.get("end_date"),
+            )
+
+            return {
+                "items": items,
+                "page": params["page"],
+                "page_size": params["page_size"],
+                "total": total,
+            }

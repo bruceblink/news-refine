@@ -1,4 +1,4 @@
-from sqlalchemy import select, update, func, cast, Float
+from sqlalchemy import select, desc, asc, update, func, cast, Float
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -138,3 +138,77 @@ async def step4_update_event_score(
     )
 
     await session.execute(stmt)
+
+
+
+async def query_news_events(
+        session: AsyncSession,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        order_by: str = "score",     # score | date
+        order_desc: bool = True,
+        status: int | None = None,
+        start_date=None,
+        end_date=None,
+):
+    offset = (page - 1) * page_size
+
+    stmt = select(
+        news_event.c.id,
+        news_event.c.event_date,
+        news_event.c.title,
+        news_event.c.summary,
+        news_event.c.news_count,
+        news_event.c.score,
+        news_event.c.status,
+    )
+
+    # 1. 过滤条件
+    if status is not None:
+        stmt = stmt.where(news_event.c.status == status)
+
+    if start_date is not None:
+        stmt = stmt.where(news_event.c.event_date >= start_date)
+
+    if end_date is not None:
+        stmt = stmt.where(news_event.c.event_date <= end_date)
+
+    # 2. 排序
+    if order_by == "date":
+        order_col = news_event.c.event_date
+    else:
+        order_col = news_event.c.score
+
+    stmt = stmt.order_by(
+        desc(order_col) if order_desc else asc(order_col),
+        desc(news_event.c.id),
+    )
+
+    # 3. 分页
+    stmt = stmt.limit(page_size).offset(offset)
+
+    result = await session.execute(stmt)
+    return result.mappings().all()
+
+
+async def count_news_events(
+        session: AsyncSession,
+        *,
+        status: int | None = None,
+        start_date=None,
+        end_date=None,
+):
+    stmt = select(func.count()).select_from(news_event)
+
+    if status is not None:
+        stmt = stmt.where(news_event.c.status == status)
+
+    if start_date is not None:
+        stmt = stmt.where(news_event.c.event_date >= start_date)
+
+    if end_date is not None:
+        stmt = stmt.where(news_event.c.event_date <= end_date)
+
+    result = await session.execute(stmt)
+    return result.scalar_one()
