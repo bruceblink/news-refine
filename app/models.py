@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, BigInteger, String, Date, Text, TIMESTAMP, MetaData, ForeignKey, JSON, \
-    UniqueConstraint, Boolean, Float, Integer, SmallInteger
+    UniqueConstraint, Boolean, Float, Integer, SmallInteger, text
 from sqlalchemy.sql import func
 
 metadata = MetaData()
@@ -89,7 +89,7 @@ news_event_pipeline_run = Table(
     Column("event_date", Date),
     Column("affected_rows", Integer),
     Column("cost_ms", Integer),
-    Column("status", SmallInteger, nullable=False, server_default=0),
+    Column("status", SmallInteger, nullable=False, server_default=text("0"),),
     Column("message", Text),
     Column("created_at", TIMESTAMP(timezone=True), server_default=func.current_timestamp()),
     Column("updated_at", TIMESTAMP(timezone=True), server_default=func.current_timestamp()),
