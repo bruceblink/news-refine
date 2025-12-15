@@ -1,6 +1,7 @@
 from datetime import date
 
 from sqlalchemy import select, and_, update, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import AsyncSessionLocal
 from app.models import news_item, news_info
@@ -59,7 +60,7 @@ async def fetch_news_info_rows(
         ]
 
 
-async def update_news_info_extracted_state(session, items: list[dict]) -> None:
+async def update_news_info_extracted_state(session: AsyncSession, items: list[dict]) -> None:
     """
     更新已提取的新闻info的状态
     :param session:

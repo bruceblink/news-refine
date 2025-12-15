@@ -3,6 +3,7 @@ from datetime import date
 
 from sqlalchemy import select, and_, update, func, or_, literal_column
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import AsyncSessionLocal
 from app.models import news_item, news_keywords
@@ -137,7 +138,7 @@ async def fetch_news_item_rows_not_extracted(
         ]
 
 
-async def update_news_item_extracted_state(session, items: list[dict]) -> None:
+async def update_news_item_extracted_state(session: AsyncSession, items: list[dict]) -> None:
     """
     更新已提取的新闻item的状态
     :param session:
@@ -204,7 +205,7 @@ async def fetch_news_item_by_id(news_id: str) -> list[dict]:
         ]
 
 
-async def save_news_items(session, items: list[dict]) -> None:
+async def save_news_items(session: AsyncSession, items: list[dict]) -> None:
     if not items:
         return None
 

@@ -1,10 +1,11 @@
 from sqlalchemy import literal_column
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import news_keywords
 
 
-async def save_news_keywords(session, items: list[dict]) -> None:
+async def save_news_keywords(session: AsyncSession, items: list[dict]) -> None:
 
     if not items:
         return None
