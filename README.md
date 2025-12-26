@@ -11,9 +11,6 @@
 ## API 示例
 
 - GET /health
-- GET /api/analysis/news?limit=100
-- GET /api/analysis/tfidf?n=50&start_date=2025-11-01&end_date=2025-11-27
-- GET /api/analysis/wordcloud?start_date=2025-11-01&end_date=2025-11-27
 
 [API文档](https://news-analytics-gw35.onrender.com/)
 
