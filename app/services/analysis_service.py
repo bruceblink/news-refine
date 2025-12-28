@@ -318,7 +318,7 @@ async def list_news_events(
             return {
                 "items": items,
                 "page": params["page"],
-                "page_size": params["page_size"],
+                "pageSize": params["page_size"],
                 "total": total,
             }
 
