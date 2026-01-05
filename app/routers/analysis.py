@@ -1,8 +1,9 @@
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel, Field, field_validator
 
+from ..auth import require_permission
 from ..dao.news_info_dao import fetch_news_info_rows
 from ..dao.news_item_dao import fetch_news_item_rows_not_extracted
 from ..services import extract_keywords_task
@@ -113,7 +114,7 @@ async def extract_news_event():
     return {"status": "ok", "msgs": "extract_event success"}
 
 
-@router.get("/events")
+@router.get("/events", dependencies=[Depends(require_permission("event:read"))])
 async def get_news_events(
         page: int = Query(1, ge=1),
         pageSize: int = Query(20, ge=1, le=100),
