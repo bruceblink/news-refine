@@ -5,9 +5,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
 
 from app import settings
+from app.middleware import JWTMiddleware
 from app.routers import analysis, search, news
 
 app = FastAPI(title="News Analytics API")
+
+# 注册jwt提取的中间件
+app.add_middleware(JWTMiddleware)
+
 
 # 创建静态文件夹
 os.makedirs(settings.WORDCLOUD_DIR, exist_ok=True)
