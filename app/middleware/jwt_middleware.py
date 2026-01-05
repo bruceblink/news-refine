@@ -1,8 +1,8 @@
 from fastapi import Request
-from jose import jwt, JWTError
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.auth.jwt import SECRET_KEY, ALGORITHM
+from app.auth.jwt import decode_jwt
+from app.core.context import UserContext
 
 
 class JWTMiddleware(BaseHTTPMiddleware):
@@ -12,14 +12,13 @@ class JWTMiddleware(BaseHTTPMiddleware):
 
         if auth and auth.startswith("Bearer "):
             token = auth[7:]
-            try:
-                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                request.state.user = {
-                    "user_id": int(payload["sub"]),
-                    "org_id": payload.get("org_id"),
-                    "role": payload.get("role"),
-                }
-            except JWTError:
-                pass  # 不在这里抛异常
+            payload = decode_jwt(token)
+
+            if payload:
+                request.state.user = UserContext(
+                    user_id=int(payload["sub"]),
+                    org_id=payload.get("org_id"),
+                    role=payload.get("role"),
+                )
 
         return await call_next(request)
