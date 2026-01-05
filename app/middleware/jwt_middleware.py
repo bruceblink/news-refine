@@ -2,7 +2,7 @@ from fastapi import Request
 from jose import jwt, JWTError
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.auth.jwt import SECRET_KEY
+from app.auth.jwt import SECRET_KEY, ALGORITHM
 
 
 class JWTMiddleware(BaseHTTPMiddleware):
@@ -13,7 +13,7 @@ class JWTMiddleware(BaseHTTPMiddleware):
         if auth and auth.startswith("Bearer "):
             token = auth[7:]
             try:
-                payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
                 request.state.user = {
                     "user_id": int(payload["sub"]),
                     "org_id": payload.get("org_id"),
