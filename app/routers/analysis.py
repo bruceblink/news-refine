@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel, Field, field_validator
 
-from ..auth import require_permission
+from ..auth import require_permission, swagger_auth
 from ..dao.news_info_dao import fetch_news_info_rows
 from ..dao.news_item_dao import fetch_news_item_rows_not_extracted
 from ..services import extract_keywords_task
@@ -121,6 +121,7 @@ async def get_news_events(
         orderBy: str = Query("score"),
         orderDesc: bool = Query(True),
         status: int | None = Query(0),
+        token: str = Depends(swagger_auth)
 ):
     data = await list_news_events(
         page=page,
