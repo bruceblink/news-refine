@@ -121,13 +121,17 @@ async def get_news_events(
         orderDesc: bool = Query(True),
         status: int | None = Query(0),
 ):
-    return await list_news_events(
+    data = await list_news_events(
         page=page,
         page_size=pageSize,
         order_by=orderBy,
         order_desc=orderDesc,
         status=status,
     )
+    return {
+        "status": "ok",
+        "data": data
+    }
 
 
 @router.get("/events/{event_id}")
