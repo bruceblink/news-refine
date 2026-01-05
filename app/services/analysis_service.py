@@ -319,7 +319,7 @@ async def list_news_events(
                 "items": items,
                 "page": params["page"],
                 "pageSize": params["page_size"],
-                "total": total,
+                "totalCount": total,
             }
 
 

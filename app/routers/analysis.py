@@ -116,16 +116,16 @@ async def extract_news_event():
 @router.get("/events")
 async def get_news_events(
         page: int = Query(1, ge=1),
-        page_size: int = Query(20, ge=1, le=100),
-        order_by: str = Query("score"),
-        order_desc: bool = Query(True),
+        pageSize: int = Query(20, ge=1, le=100),
+        orderBy: str = Query("score"),
+        orderDesc: bool = Query(True),
         status: int | None = Query(0),
 ):
     return await list_news_events(
         page=page,
-        page_size=page_size,
-        order_by=order_by,
-        order_desc=order_desc,
+        page_size=pageSize,
+        order_by=orderBy,
+        order_desc=orderDesc,
         status=status,
     )
 
