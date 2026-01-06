@@ -18,7 +18,11 @@ class Settings(BaseSettings):
     # 项目根目录
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     # 跨域请求白名单
-    CORS_ORIGINS: list[str] = (os.getenv("FRONTEND_DOMAINS") or os.getenv("CORS_ORIGINS")).split(';')
+    CORS_ORIGINS: list[str] = [
+        origin for origin in
+        (os.getenv("FRONTEND_DOMAINS") or os.getenv("CORS_ORIGINS") or "").split(';')
+        if origin
+    ]
     # 停词表文件
     STOPWORDS_FILE: str = os.path.join(BASE_DIR, "chinese_stopwords.txt")
 
