@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     TFIDF_MAX_FEATURES: int = int(os.getenv("TFIDF_MAX_FEATURES", "2000"))
     # 项目根目录
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # 跨域请求白名单
+    CORS_ORIGINS: list[str] = (os.getenv("FRONTEND_DOMAINS") or os.getenv("CORS_ORIGINS")).split(';')
     # 停词表文件
     STOPWORDS_FILE: str = os.path.join(BASE_DIR, "chinese_stopwords.txt")
 

@@ -2,6 +2,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
 from app import settings
@@ -12,6 +13,15 @@ app = FastAPI(title="News Analytics API")
 
 # 注册jwt提取的中间件
 app.add_middleware(JWTMiddleware)
+# 注册CORS白名单中间件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS, # 跨域白名单
+    #allow_origin_regex=r"https://.*\.likanug\.top", # 跨域正则表达式
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # 创建静态文件夹
