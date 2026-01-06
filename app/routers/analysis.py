@@ -32,8 +32,8 @@ class BaseQuery(BaseModel):
             raise ValueError("日期格式错误，应为 YYYY-MM-DD")
 
 
-@router.post("/extract_news", summary="提取新闻item")
-async def extract_news_item_from_news_info(params: BaseQuery):
+@router.post("/extract_news_item", summary="提取新闻item")
+async def extract_news_item(params: BaseQuery):
     """
      从原始新闻数据中提取news_item
 
@@ -104,7 +104,7 @@ async def extract_tfidf_top_keywords(params: TFIDFQuery):
     return {"status": "ok", "msgs": "generate success"}
 
 
-@router.post("/extract_event", summary="提取新闻event")
+@router.post("/extract_news_event", summary="提取新闻event")
 async def extract_news_event():
     """
      执行提取新闻事件的作业
