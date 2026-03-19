@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = os.getenv("APP_ENV", "production")
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql+asyncpg://postgres:password@localhost:5432/newsletter",
+        "postgresql+asyncpg://postgres:myapp123@postgres:5432/newsletter",
     )
     STATIC_DIR: str = os.getenv("STATIC_DIR", "static")
     WORDCLOUD_DIR: str = os.getenv(
