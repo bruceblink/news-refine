@@ -44,9 +44,9 @@ services:
       # ✅ PostgresSQL 连接
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: ${DB_USER:-ship-app}
+      DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-myapp123}
-      DB_NAME: ${DB_NAME:-ship-db}
+      DB_NAME: ${DB_NAME:-newsletter}
 
       # ❗ 驱动必须改
       DB_ASYNC_DRIVER: ${DB_ASYNC_DRIVER:-postgresql+asyncpg}
