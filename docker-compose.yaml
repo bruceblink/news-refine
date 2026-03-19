@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16   # ✅ 官方稳定版本（接近 LTS 使用习惯）
+    container_name: postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ship-db}
+      POSTGRES_USER: ${DB_USER:-ship-app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-myapp123}
+
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d   # 初始化 SQL
+
+    ports:
+      - "5432:5432"  # 可选（宿主机访问）
+
+    networks:
+      - my-network
+
+    # ✅ 健康检查
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ship-app} -d ${DB_NAME:-ship-db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile   # ✅ 本地构建
+    container_name: collision-alarm-sync-service
+    restart: unless-stopped
+
+    ports:
+      - "8101:8101"
+
+    environment:
+      APP_ENV: production
+
+      # ✅ PostgresSQL 连接
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-ship-app}
+      DB_PASSWORD: ${DB_PASSWORD:-myapp123}
+      DB_NAME: ${DB_NAME:-ship-db}
+
+      # ❗ 驱动必须改
+      DB_ASYNC_DRIVER: ${DB_ASYNC_DRIVER:-postgresql+asyncpg}
+      DB_SYNC_DRIVER: ${DB_SYNC_DRIVER:-postgresql+psycopg2}
+
+    env_file:
+      - .env
+
+    volumes:
+      - ./logs:/app/logs
+
+    networks:
+      - my-network
+
+    # ✅ 等待数据库 ready
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  my-network:
+    driver: bridge
