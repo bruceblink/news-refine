@@ -36,3 +36,5 @@ dist/
 *.local
 .env
 .env.production
+postgres
+logs
