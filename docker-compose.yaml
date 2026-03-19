@@ -7,8 +7,8 @@ services:
     restart: unless-stopped
 
     environment:
-      POSTGRES_DB: ${DB_NAME:-ship-db}
-      POSTGRES_USER: ${DB_USER:-ship-app}
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-newsletter}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-myapp123}
 
     volumes:
