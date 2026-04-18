@@ -316,7 +316,13 @@ async def list_news_events(
             )
 
             return {
-                "items": items,
+                "items": [
+                    {
+                        **dict(row),
+                        "event_date": row["event_date"].isoformat() if row["event_date"] else None,
+                    }
+                    for row in items
+                ],
                 "page": params["page"],
                 "pageSize": params["page_size"],
                 "totalCount": total,
@@ -335,8 +341,17 @@ async def get_news_event_detail(
             items = await list_news_items_by_event(session, event_id)
 
             return {
-                "event": event,
-                "news_items": items,
+                "event": {
+                    **dict(event),
+                    "event_date": event["event_date"].isoformat() if event["event_date"] else None,
+                },
+                "news_items": [
+                    {
+                        **dict(item),
+                        "published_at": item["published_at"].isoformat() if item["published_at"] else None,
+                    }
+                    for item in items
+                ],
             }
 
 
