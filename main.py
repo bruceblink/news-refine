@@ -7,7 +7,7 @@ from starlette.responses import RedirectResponse
 
 from app import settings
 from app.middleware import JWTMiddleware
-from app.routers import analysis, search, news
+from app.routers import analysis, search, news, stats
 
 app = FastAPI(title="News Analytics API")
 
@@ -33,6 +33,7 @@ app.mount("/static", StaticFiles(directory=settings.STATIC_DIR), name="static")
 app.include_router(analysis.router, tags=["分析模块"])
 app.include_router(search.router, tags=["搜索模块"])
 app.include_router(news.router, tags=["新闻模块"])
+app.include_router(stats.router, tags=["统计模块"])
 
 
 @app.get("/")
