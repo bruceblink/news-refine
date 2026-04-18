@@ -9,11 +9,51 @@ from ..dao.news_item_dao import fetch_news_item_rows_not_extracted
 from ..services import extract_keywords_task
 from ..services.analysis_service import (
     async_tfidf_top, build_news_item_from_news_info, embedding_cluster_pipeline, list_news_events,
-    get_news_event_detail, merge_cross_day_events_task,
+    get_news_event_detail, merge_cross_day_events_task, docs_to_corpus, async_generate_wordcloud,
 )
 from ..services.extract_news_service import extract_news_items_task, extract_news_event_task
 
 router = APIRouter(prefix="/api/analysis")
+
+
+# ── 通用响应模型 ────────────────────────────────────────────
+class StatusResponse(BaseModel):
+    status: str
+    msgs: str
+
+
+# ── 事件相关响应模型 ─────────────────────────────────────────
+class NewsEventItem(BaseModel):
+    id: int
+    event_date: date | None
+    title: str | None
+    summary: str | None
+    news_count: int | None
+    score: float | None
+    status: int | None
+
+
+class NewsEventListResponse(BaseModel):
+    status: str
+    data: dict
+
+
+class NewsItemInEvent(BaseModel):
+    id: int
+    title: str | None
+    url: str | None
+    source: str | None
+    published_at: date | None
+
+
+class NewsEventDetailResponse(BaseModel):
+    event: dict
+    news_items: list
+
+
+# ── 词云响应模型 ─────────────────────────────────────────────
+class WordcloudResponse(BaseModel):
+    urls: list[str]
 
 
 class BaseQuery(BaseModel):
@@ -32,7 +72,7 @@ class BaseQuery(BaseModel):
             raise ValueError("日期格式错误，应为 YYYY-MM-DD")
 
 
-@router.post("/extract_news_item", summary="提取新闻item")
+@router.post("/extract_news_item", summary="提取新闻item", response_model=StatusResponse)
 async def extract_news_item(params: BaseQuery):
     """
      从原始新闻数据中提取news_item
@@ -83,7 +123,7 @@ class TFIDFQuery(BaseModel):
             raise ValueError("日期格式错误，应为 YYYY-MM-DD")
 
 
-#@router.post("/tfidf", summary="生成 TF-IDF Top N 关键词")
+@router.post("/tfidf", summary="生成 TF-IDF Top N 关键词", response_model=StatusResponse)
 async def extract_tfidf_top_keywords(params: TFIDFQuery):
     """
      请求计算 TF-IDF Top N 词
@@ -104,7 +144,7 @@ async def extract_tfidf_top_keywords(params: TFIDFQuery):
     return {"status": "ok", "msgs": "generate success"}
 
 
-@router.post("/extract_news_event", summary="提取新闻event")
+@router.post("/extract_news_event", summary="提取新闻event", response_model=StatusResponse)
 async def extract_news_event():
     """
      执行提取新闻事件的作业
@@ -114,7 +154,7 @@ async def extract_news_event():
     return {"status": "ok", "msgs": "extract_event success"}
 
 
-@router.get("/events", dependencies=[Depends(require_permission("event:read"))])
+@router.get("/events", dependencies=[Depends(require_permission("event:read"))], response_model=NewsEventListResponse)
 async def get_news_events(
         page: int = Query(1, ge=1),
         pageSize: int = Query(20, ge=1, le=100),
@@ -136,7 +176,7 @@ async def get_news_events(
     }
 
 
-@router.get("/events/{event_id}")
+@router.get("/events/{event_id}", response_model=NewsEventDetailResponse)
 async def get_event_detail(
         event_id: int,
 ):
@@ -147,7 +187,45 @@ async def get_event_detail(
     return data
 
 
-@router.post("/merge_event", summary="合并新闻event")
+# ── 词云接口 ─────────────────────────────────────────────────
+class WordcloudQuery(BaseModel):
+    limit: int = Field(50, ge=1, le=200)
+    start_date: date | None = None
+    end_date: date | None = None
+
+    @field_validator("start_date", "end_date", mode="before")
+    @classmethod
+    def check_date_format(cls, v):
+        if v is None:
+            return v
+        try:
+            return date.fromisoformat(v)
+        except ValueError:
+            raise ValueError("日期格式错误，应为 YYYY-MM-DD")
+
+
+@router.get("/wordcloud", summary="生成词云并返回图片 URL 列表", response_model=WordcloudResponse)
+async def wordcloud(params: WordcloudQuery = Depends()):
+    """
+    基于指定日期范围内的原始新闻数据生成词云图片。
+
+    - **limit**: 处理的最大新闻来源条数 (1-200, 默认50)
+    - **start_date**: 开始日期 (格式: YYYY-MM-DD)
+    - **end_date**: 结束日期 (格式: YYYY-MM-DD)
+    """
+    rows = await fetch_news_info_rows(params.start_date, params.end_date, limit=params.limit)
+    if not rows:
+        raise HTTPException(status_code=404, detail="指定日期范围内无可用数据")
+
+    corpus = await docs_to_corpus(rows)
+    if not corpus:
+        raise HTTPException(status_code=404, detail="语料为空，无法生成词云")
+
+    urls = await async_generate_wordcloud(corpus)
+    return WordcloudResponse(urls=urls)
+
+
+@router.post("/merge_event", summary="合并新闻event", response_model=StatusResponse)
 async def merge_cross_day_news_events( days: int = 2,):
     """
      合并最近 N 天的事件（默认 2 天）
@@ -161,140 +239,6 @@ async def merge_cross_day_news_events( days: int = 2,):
 
     return {
         "status": "ok",
-        "msg": f"merge_event success, days={today}"
+        "msgs": f"merge_event success, processed {days} days up to {today}"
     }
 
-
-# class WordcloudQuery(TFIDFQuery):
-#     pass
-#
-#
-# @router.get("/wordcloud", summary="生成词云并返回图片 URL")
-# async def wordcloud(params: WordcloudQuery = Depends()):
-#     rows = await fetch_news_item_rows_not_extracted(params.start_date, params.end_date, limit=params.limit)
-#     corpus = await docs_to_corpus(rows)
-#     if not corpus:
-#         raise HTTPException(status_code=404, detail="No documents")
-#
-#     out = await async_generate_wordcloud(corpus)
-#     # return direct file or url path list
-#     return {"urls": out}
-#
-#
-# @router.post("/wordcloud/generate", summary="生成最新词云图")
-# async def generate_wordcloud(
-#     gene_date: str | None = Body(None),
-#     force: bool | None = Body(False),
-# ):
-#     # 1. 确定日期
-#     now_date = datetime.now()
-#     if gene_date is None:
-#         gene_date = now_date.strftime("%Y-%m-%d")
-#
-#     # 2. 如果已有文件且 force == False，则返回已有路径
-#     dir_path = os.path.join(settings.WORDCLOUD_DIR, gene_date)
-#     if os.path.exists(dir_path) and not force:
-#         image_path = _get_latest_wordcloud_file(gene_date)
-#         return {"status": "exists", "date": gene_date, "image_path": image_path}
-#
-#     # 3. 获取生成词云的数据
-#     rows = await fetch_news_item_rows_not_extracted(start_date=now_date.date(), end_date=now_date.date())
-#     corpus = await docs_to_corpus(rows)
-#
-#     # 4. 调用业务逻辑生成词云
-#     image_path = await async_generate_wordcloud(corpus)
-#
-#     return {"status": "ok", "date": gene_date, "image_path": image_path[0]}
-#
-#
-# # -------------------------
-# # 内部函数：返回最新文件
-# # -------------------------
-# def _get_latest_wordcloud_file(folder: str) -> str | None:
-#     """返回指定文件夹中修改时间最新的文件路径"""
-#
-#     wordcloud_pic_dir = os.path.join(settings.WORDCLOUD_DIR, folder)
-#
-#     if not os.path.exists(wordcloud_pic_dir):
-#         return None
-#     files_dir = [
-#         os.path.join(wordcloud_pic_dir, f) for f in os.listdir(wordcloud_pic_dir)
-#     ]
-#     files = [f for f in files_dir if os.path.isfile(f)]
-#     if not files:
-#         return None
-#     # 按修改时间排序
-#     latest_file = max(files, key=lambda f: os.path.getmtime(f))
-#     return latest_file
-#
-#
-# @router.get("/wordcloud/image", summary="获取词云图片（默认当天日期）")
-# async def wordcloud_image_default():
-#     """
-#     获取当天的词云图
-#     :return:
-#     """
-#     wordcloud_date = datetime.now().strftime("%Y-%m-%d")
-#     latest_file = _get_latest_wordcloud_file(wordcloud_date)
-#     if not latest_file:
-#         raise HTTPException(status_code=404, detail="当天没有可用词云图片")
-#     return FileResponse(latest_file, media_type="image/png")
-#
-#
-# def get_latest_date_folder():
-#     """
-#     获取最新更新的文件夹
-#     :return:
-#     """
-#     folders = []
-#     for name in os.listdir(settings.WORDCLOUD_DIR):
-#         if re.fullmatch(r"\d{4}-\d{2}-\d{2}", name):
-#             folders.append(name)
-#
-#     if not folders:
-#         return None
-#
-#     # 依赖日期格式排序即可
-#     return max(folders)
-#
-#
-# @router.get("/wordcloud/image/latest", summary="获取最新生成的词云图片")
-# async def wordcloud_image_latest():
-#     # 遍历 WORDCLOUD_DIR 下的日期子文件夹
-#     if not os.path.exists(settings.WORDCLOUD_DIR):
-#         raise HTTPException(status_code=404, detail="没有可用的词云图片")
-#
-#     latest_folder = get_latest_date_folder()
-#     if not latest_folder:
-#         raise HTTPException(status_code=404, detail="没有可用的词云图片")
-#
-#     # 找到所有文件夹下的最新文件
-#     latest_file = _get_latest_wordcloud_file(latest_folder)
-#
-#     if not latest_file:
-#         raise HTTPException(status_code=404, detail="没有可用的词云图片")
-#
-#     return FileResponse(latest_file, media_type="image/png")
-#
-#
-# @router.get("/wordcloud/image/{wordcloud_date}", summary="获取词云图片（指定日期）")
-# async def wordcloud_image_with_date(
-#     wordcloud_date: str = Path(..., description="日期，格式 YYYY-MM-DD")
-# ):
-#     """
-#     获取指定日期的词云图
-#     :param wordcloud_date:
-#     :return:
-#     """
-#     # 校验日期格式
-#     try:
-#         datetime.strptime(wordcloud_date, "%Y-%m-%d")
-#     except ValueError:
-#         raise HTTPException(status_code=422, detail="日期格式错误，必须为 YYYY-MM-DD")
-#
-#     latest_file = _get_latest_wordcloud_file(wordcloud_date)
-#     if not latest_file:
-#         raise HTTPException(
-#             status_code=404, detail=f"{wordcloud_date} 没有可用词云图片"
-#         )
-#     return FileResponse(latest_file, media_type="image/png")

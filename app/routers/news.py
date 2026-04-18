@@ -11,7 +11,17 @@ from app.models import news_keywords, news_item
 router = APIRouter(prefix="/api/news")
 
 
-@router.get("/{news_id}")
+class NewsDetailResponse(BaseModel):
+    id: int
+    item_id: str | None
+    title: str | None
+    url: str | None
+    source: str | None
+    published_at: str | None
+    content: str | None
+
+
+@router.get("/{news_id}", response_model=NewsDetailResponse)
 async def get_news_detail(news_id: str):
     # 返回新闻详情
     return await fetch_news_item_by_id(news_id)
@@ -49,24 +59,25 @@ async def get_related_news(
         if not target_keywords:
             raise HTTPException(status_code=404, detail="目标新闻关键词不存在")
 
-        # 2) 获取其他新闻关键词及权重
+        # 2) 查询含相同关键词的其他新闻（在 DB 侧过滤，效率更高）
+        target_kw_list = list(target_keywords.keys())
         stmt = select(
             news_keywords.c.news_id,
             news_keywords.c.keyword,
             news_keywords.c.weight
+        ).where(
+            news_keywords.c.keyword.in_(target_kw_list),
+            news_keywords.c.news_id != news_id,
         )
-        conditions1 = [news_keywords.c.news_id == news_id]
-        stmt = stmt.where(and_(*conditions1))
         rows = (await session.execute(stmt)).all()
 
         if not rows:
             return {"total": 0, "items": []}
 
-        # 3) 在 Python 中计算重叠权重相似度
+        # 3) 在 Python 中计算重叠权重相似度（取两者最小权重之和）
         score_map = defaultdict(float)
         for r in rows:
-            if r.keyword in target_keywords:
-                score_map[r.news_id] += min(target_keywords[r.keyword], r.weight)
+            score_map[r.news_id] += min(target_keywords[r.keyword], r.weight)
 
         if not score_map:
             return {"total": 0, "items": []}

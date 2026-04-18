@@ -8,6 +8,14 @@ JWT_SECRET = os.getenv("JWT_SECRET") or "change_me"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
+# 生产环境强制要求设置 JWT_SECRET，防止使用不安全的默认值
+_env = os.getenv("APP_ENV", "production")
+if _env == "production" and JWT_SECRET == "change_me":
+    raise RuntimeError(
+        "JWT_SECRET 未配置！生产环境必须通过环境变量 JWT_SECRET 设置安全密钥，"
+        "请勿使用默认值 'change_me'。"
+    )
+
 
 def create_access_token(user_id: int, org_id: int | None, role: str):
     payload = {
