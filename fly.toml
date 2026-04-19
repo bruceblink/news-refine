@@ -1,4 +1,4 @@
-app = "nts-analytics"
+app = "news-refine"
 primary_region = "sin"
 
 kill_signal = "SIGINT"
