@@ -23,8 +23,10 @@ class NewsDetailResponse(BaseModel):
 
 @router.get("/{news_id}", response_model=NewsDetailResponse)
 async def get_news_detail(news_id: str):
-    # 返回新闻详情
-    return await fetch_news_item_by_id(news_id)
+    item = await fetch_news_item_by_id(news_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="新闻不存在")
+    return item
 
 
 class RelatedNewsItem(BaseModel):
@@ -115,12 +117,4 @@ async def get_related_news(
 
         return {"total": len(items), "items": items}
 
-@router.get("/trending")
-async def trending_news():
-    # 返回热点关键词或热门新闻
-    pass
 
-@router.get("/cluster")
-async def news_cluster():
-    # 返回新闻聚类 / 主题
-    pass

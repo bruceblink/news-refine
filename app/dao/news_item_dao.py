@@ -164,7 +164,7 @@ async def update_news_item_extracted_state(session: AsyncSession, items: list[di
     await session.execute(stmt)
 
 
-async def fetch_news_item_by_id(news_id: str) -> list[dict]:
+async def fetch_news_item_by_id(news_id: str) -> dict | None:
     """
      根据新闻id查询新闻详情
     :param news_id:
@@ -182,27 +182,39 @@ async def fetch_news_item_by_id(news_id: str) -> list[dict]:
                 news_item.c.source,
                 news_item.c.content,
             )
+            .where(news_item.c.id == news_id)
+            .limit(1)
         )
 
-        conditions = [news_item.c.id == news_id]
-
-        stmt = stmt.where(and_(*conditions))
-        stmt = stmt.order_by(news_item.c.published_at.desc()).limit(1)
-
         result = await session.execute(stmt)
-        rows = result.mappings().all()
+        row = result.mappings().first()
 
-        return [
-            {
-                "id": r["id"],
-                "title": r["title"],
-                "url": r["url"],
-                "published_at": r["published_at"].isoformat() if r["published_at"] else None,
-                "source": r["source"],
-                "content": r["content"],
-            }
-            for r in rows
-        ]
+        if row is None:
+            return None
+
+        return {
+            "id": row["id"],
+            "news_info_id": row["news_info_id"],
+            "title": row["title"],
+            "url": row["url"],
+            "published_at": row["published_at"].isoformat() if row["published_at"] else None,
+            "source": row["source"],
+            "content": row["content"],
+        }
+
+
+async def count_news_by_keywords(keywords: list[str]) -> int:
+    """
+    统计匹配关键词的新闻总数（用于分页）
+    """
+    keywords = [k.strip() for k in keywords if k.strip()]
+    if not keywords:
+        return 0
+    async with AsyncSessionLocal() as session:
+        conditions = [news_keywords.c.keyword.ilike(f"%{k}%") for k in keywords]
+        stmt = select(func.count(func.distinct(news_keywords.c.news_id))).where(or_(*conditions))
+        result = await session.execute(stmt)
+        return result.scalar_one()
 
 
 async def save_news_items(session: AsyncSession, items: list[dict]) -> None:
