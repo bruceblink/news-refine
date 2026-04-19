@@ -118,15 +118,20 @@ async def step3_fill_event_title_and_summary(
 async def step4_update_event_score(
         session: AsyncSession,
         decay_days: float = 5.0,
+        lookback_days: int = 30,
 ):
     """
     计算并更新 news_event.score
 
     score = ln(news_count + 1) * exp(-(today - event_date) / decay_days)
+
+    只更新最近 lookback_days 天的事件（更早的事件 score 趋近于 0，无需重算）
     """
+    since = func.current_date() - lookback_days
 
     stmt = (
         update(news_event)
+        .where(news_event.c.event_date >= since)
         .values(
             score=
             func.ln(news_event.c.news_count + 1)
