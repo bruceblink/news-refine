@@ -85,9 +85,6 @@ async def fetch_top_news_by_event_ids(
     if not event_ids:
         return {}
 
-    from sqlalchemy import over, Integer
-    from sqlalchemy.sql import func as sqlfunc
-
     rn_col = func.row_number().over(
         partition_by=news_event_item.c.event_id,
         order_by=asc(news_item.c.id),

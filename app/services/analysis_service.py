@@ -121,26 +121,6 @@ def build_news_item_from_news_info(news: list[dict]) -> list[dict]:
     return result
 
 
-def build_news_item_from_news_info1(news: list[dict]) -> list[dict]:
-    """
-     列表生成式优化
-    :param news:
-    :return:
-    """
-    return [
-        {
-            "item_id": item.get("id", ""),
-            "news_info_id": data.get("id", 0),
-            "title": item.get("title", ""),
-            "url": data.get("url", ""),
-            "published_at": data.get("news_date", ""),
-            "source": data.get("name", ""),
-        }
-        for news_item in news if (data := news_item.get("data"))
-        for item in data.get("items", [])
-    ]
-
-
 # Public coroutine wrappers
 import asyncio
 
