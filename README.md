@@ -6,7 +6,7 @@
 
 ## 系统架构
 
-```
+```txt
                     ┌─────────────────────┐
                     │      Frontend       │
                     │   (Web / App，规划)  │
@@ -69,7 +69,7 @@
 
 ## 项目结构
 
-```
+```txt
 news-analytics/
 ├── main.py                    # 应用入口
 ├── app/
@@ -205,4 +205,3 @@ fly deploy
 ## License
 
 MIT
-
