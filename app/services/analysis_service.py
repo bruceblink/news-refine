@@ -13,7 +13,7 @@ from ..utils import clean_html
 
 logger = logging.getLogger(__name__)
 
-executor = ThreadPoolExecutor(max_workers=2)
+executor = ThreadPoolExecutor(max_workers=1)  # Render 512MB 限制，只保留 1 个线程
 
 
 # Helper to fetch documents from DB
@@ -160,10 +160,6 @@ async def async_generate_wordcloud(
     return await asyncio.to_thread(generate_wordcloud, corpus, out_path)
 
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.cluster import MiniBatchKMeans
-
-
 def embedding_cluster_pipeline(
         texts: list[str | Any],
         n_clusters: int = 50,
@@ -225,6 +221,10 @@ def embedding_cluster_pipeline(
     # 全是空文本
     if not any(cleaned_texts):
         return [0] * len(cleaned_texts), "all_texts_invalid"
+
+    # 延迟导入，避免启动时加载 sklearn 占用大量内存
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.cluster import MiniBatchKMeans
 
     # =========================
     # Step 2. 自适应 TF-IDF
