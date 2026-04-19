@@ -1,8 +1,10 @@
+import asyncio
+
 import wordfreq_cn
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
-from app.dao import fetch_news_item_by_keywords
+from app.dao import fetch_news_item_by_keywords, count_news_by_keywords
 
 router = APIRouter(prefix="/api/search")
 
@@ -35,6 +37,9 @@ async def search_news(
         return SearchResponse(total=0, page=page, pageSize=pageSize, items=[])
 
     offset = (page - 1) * pageSize
-    items = await fetch_news_item_by_keywords(keywords, pageSize, offset)
+    total, items = await asyncio.gather(
+        count_news_by_keywords(keywords),
+        fetch_news_item_by_keywords(keywords, pageSize, offset),
+    )
 
-    return SearchResponse(total=len(items), page=page, pageSize=pageSize, items=items)
+    return SearchResponse(total=total, page=page, pageSize=pageSize, items=items)
