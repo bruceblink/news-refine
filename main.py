@@ -9,7 +9,7 @@ from app import settings
 from app.middleware import JWTMiddleware
 from app.routers import analysis, search, news, stats
 
-app = FastAPI(title="News Analytics API")
+app = FastAPI(title="News Refine API")
 
 # 注册jwt提取的中间件
 app.add_middleware(JWTMiddleware)

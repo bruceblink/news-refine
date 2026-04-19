@@ -111,7 +111,7 @@ news-refine/
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/bruceblink/news-analytics.git
+git clone https://github.com/bruceblink/news-refine.git
 cd news-refine
 
 # 2. 安装依赖
@@ -164,7 +164,7 @@ docker compose up -d
 | GET | `/api/news/{news_id}/related` | 相关新闻推荐 |
 | GET | `/api/search/news?q=关键词` | 全文关键词搜索 |
 
-完整交互文档：[Swagger UI](https://news-refine.onrender.com/docs)
+完整交互文档：[Swagger UI](https://anal.likanug.top/docs)
 
 ## 部署
 
