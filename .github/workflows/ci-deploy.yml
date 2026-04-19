@@ -12,6 +12,7 @@ on:
       - '.gitignore'
       - '.gitattributes'
       - 'picture/**'
+      - '.markdownlint*'
   pull_request:
     branches:
       - main
