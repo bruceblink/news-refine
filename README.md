@@ -1,4 +1,4 @@
-# ts-analytics
+# nts-analytics
 
 > **News TimeStream Platform** 的分析层服务（v1.2）
 
@@ -31,7 +31,7 @@
              │  多源新闻数据聚合     │
              └──────────────────────┘
 
-            数据流向：LatestNews → Agora → ts-analytics（单向）
+            数据流向：LatestNews → Agora → nts-analytics（单向）
 ```
 
 ### 各系统职责
@@ -40,7 +40,7 @@
 |------|------|------|------|------|
 | **LatestNews** | Node.js / TypeScript | ✅ 运行中 | 多源新闻抓取，提供查询 API | [bruceblink/LatestNews](https://github.com/bruceblink/LatestNews) |
 | **Agora** | Rust | ✅ 运行中 | cron 调度、数据入库、用户认证（Keylo）| [bruceblink/agora](https://github.com/bruceblink/agora) |
-| **ts-analytics** | Python | ✅ 运行中（Render）| 数据清洗、关键词提取、事件聚合、分析 API | 本项目 |
+| **nts-analytics** | Python | ✅ 运行中（Render）| 数据清洗、关键词提取、事件聚合、分析 API | 本项目 |
 | **BFF** | Java Spring Boot | 🚧 规划中 | 面向前端的编排层，聚合 Agora + analytics 数据 | — |
 
 > **认证说明**：用户认证统一由 Agora 内置的 **Keylo** 能力（OAuth2 / JWT / RBAC）提供，BFF 通过调用 Agora `/auth/*` 端点完成鉴权，news-analytics 本身**不直接服务前端**，无需独立认证。
@@ -49,7 +49,7 @@
 
 | 任务名 | 频率 | 说明 |
 |--------|------|------|
-| `health_check` | 每 10 分钟 | 保活 Render 上的 ts-analytics 服务 |
+| `health_check` | 每 10 分钟 | 保活 Render 上的 nts-analytics 服务 |
 | `fetch_all_news` | 每小时整点 | 拉取 LatestNews 全部数据源写入 news_info |
 | `extract_transform_news_info_to_item` | 每 10 分钟（6-23 点）| 触发 analytics 提取 news_item |
 | `extract_keywords_to_news_keywords` | 每 30 分钟（6-23 点）| 触发 analytics 提取关键词 |
@@ -70,7 +70,7 @@
 ## 项目结构
 
 ```txt
-ts-analytics/
+nts-analytics/
 ├── main.py                    # 应用入口
 ├── app/
 │   ├── config.py              # 环境配置 (pydantic-settings)
@@ -112,7 +112,7 @@ ts-analytics/
 ```bash
 # 1. 克隆项目
 git clone https://github.com/bruceblink/news-analytics.git
-cd ts-analytics
+cd nts-analytics
 
 # 2. 安装依赖
 pip install .
@@ -164,7 +164,7 @@ docker compose up -d
 | GET | `/api/news/{news_id}/related` | 相关新闻推荐 |
 | GET | `/api/search/news?q=关键词` | 全文关键词搜索 |
 
-完整交互文档：[Swagger UI](https://ts-analytics.onrender.com/docs)
+完整交互文档：[Swagger UI](https://nts-analytics.onrender.com/docs)
 
 ## 部署
 

@@ -1,4 +1,4 @@
-app = "ts-analytics"
+app = "nts-analytics"
 primary_region = "sin"
 
 kill_signal = "SIGINT"
