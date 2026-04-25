@@ -11,6 +11,7 @@ from ..services.analysis_service import (
     async_tfidf_top, build_news_item_from_news_info, embedding_cluster_pipeline, list_news_events,
     get_news_event_detail, merge_cross_day_events_task, docs_to_corpus, async_generate_wordcloud,
 )
+from ..config import settings
 from ..services.extract_news_service import extract_news_items_task, extract_news_event_task
 
 router = APIRouter(prefix="/api/analysis")
@@ -49,6 +50,9 @@ class NewsItemInEvent(BaseModel):
 class NewsEventDetailResponse(BaseModel):
     event: dict
     news_items: list
+    page: int
+    pageSize: int
+    totalCount: int
 
 
 # ── 词云响应模型 ─────────────────────────────────────────────
@@ -57,7 +61,7 @@ class WordcloudResponse(BaseModel):
 
 
 class BaseQuery(BaseModel):
-    limit: int = Field(50, ge=1, le=100)
+    limit: int = Field(30, ge=1, le=100)
     start_date: date | None = None
     end_date: date | None = None
 
@@ -107,7 +111,7 @@ async def extract_news_item(params: BaseQuery):
 
 
 class TFIDFQuery(BaseModel):
-    limit: int = Field(500, ge=1, le=500)
+    limit: int = Field(200, ge=1, le=500)
     top_k: int = Field(5, ge=1, le=10)
     start_date: date | None = None
     end_date: date | None = None
@@ -138,7 +142,7 @@ async def extract_tfidf_top_keywords(params: TFIDFQuery):
     if not rows:
         return {"status": "ok", "msgs": "no data to generate"}
 
-    tops = await async_tfidf_top(rows, top_n=params.top_k)
+    tops = await async_tfidf_top(rows, top_n=params.top_k, max_features=settings.TFIDF_MAX_FEATURES)
     # 执行提取关键字的事务作业
     await extract_keywords_task(tops)
     return {"status": "ok", "msgs": "generate success"}
@@ -179,8 +183,10 @@ async def get_news_events(
 @router.get("/events/{event_id}", response_model=NewsEventDetailResponse)
 async def get_event_detail(
         event_id: int,
+        page: int = Query(1, ge=1),
+        pageSize: int = Query(20, ge=1, le=100),
 ):
-    data = await get_news_event_detail(event_id)
+    data = await get_news_event_detail(event_id, page=page, page_size=pageSize)
     if data is None:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -189,7 +195,7 @@ async def get_event_detail(
 
 # ── 词云接口 ─────────────────────────────────────────────────
 class WordcloudQuery(BaseModel):
-    limit: int = Field(50, ge=1, le=200)
+    limit: int = Field(30, ge=1, le=200)
     start_date: date | None = None
     end_date: date | None = None
 

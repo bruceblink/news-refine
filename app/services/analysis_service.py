@@ -7,7 +7,7 @@ from wordfreq_cn import generate_trend_wordcloud, extract_keywords_tfidf_per_doc
 
 from ..config import settings
 from ..dao import query_news_events, count_news_events, get_news_event_by_id, list_news_items_by_event, \
-    merge_cross_day_events
+    merge_cross_day_events, count_news_items_by_event
 from ..db import AsyncSessionLocal
 from ..utils import clean_html
 
@@ -311,6 +311,8 @@ async def list_news_events(
 
 async def get_news_event_detail(
         event_id: int,
+        page: int = 1,
+        page_size: int = 20,
 ):
     async with AsyncSessionLocal() as session:
         async with session.begin():   # ← ★ 事务开始
@@ -318,7 +320,9 @@ async def get_news_event_detail(
             if event is None:
                 return None
 
-            items = await list_news_items_by_event(session, event_id)
+            offset = (page - 1) * page_size
+            items = await list_news_items_by_event(session, event_id, limit=page_size, offset=offset)
+            total = await count_news_items_by_event(session, event_id)
 
             return {
                 "event": {
@@ -332,6 +336,9 @@ async def get_news_event_detail(
                     }
                     for item in items
                 ],
+                "page": page,
+                "pageSize": page_size,
+                "totalCount": total,
             }
 
 

@@ -152,6 +152,8 @@ async def merge_cross_day_events(
         session: AsyncSession,
         event_date,
         lookback_days: int = 2,
+        batch_size: int = 100,
+        parent_limit: int = 500,
 ):
     """
     合并跨天事件（使用 merge_at 控制幂等）
@@ -160,43 +162,50 @@ async def merge_cross_day_events(
     :param lookback_days:
     :return:
     """
-    # 1. 获取「当天尚未 merge 的新事件」
-    new_events = await get_new_events(session, event_date)
-
-    if not new_events:
-        return
-
-    # 2. 获取「历史主事件候选」
+    # 1. 获取「历史主事件候选」
     candidate_parents = await get_candidate_parent_events(
         session,
         event_date,
         lookback_days,
+        limit=parent_limit,
     )
 
     if not candidate_parents:
         return
 
-    # 3. 逐个尝试 merge
-    for event in new_events:
-        parent = _find_parent_event(event, candidate_parents)
+    # 2. 分批获取「当天尚未 merge 的新事件」并逐个尝试 merge
+    last_id = 0
+    while True:
+        new_events = await get_new_events(session, event_date, limit=batch_size, after_id=last_id)
 
-        if not parent:
-            continue
+        if not new_events:
+            break
 
-        # 3.1 建立 parent-child 关系
-        await attach_to_parent(
-            session,
-            child_event_id=event["id"],
-            parent_event_id=parent["id"],
-        )
+        for event in new_events:
+            parent = _find_parent_event(event, candidate_parents)
 
-        # 3.2 标记 child 已 merge
-        await mark_event_merged(session, event["id"])
+            if not parent:
+                continue
+
+            # 2.1 建立 parent-child 关系
+            await attach_to_parent(
+                session,
+                child_event_id=event["id"],
+                parent_event_id=parent["id"],
+            )
+
+            # 2.2 标记 child 已 merge
+            await mark_event_merged(session, event["id"])
+
+        last_id = new_events[-1]["id"]
 
 
 async def get_new_events(
         session: AsyncSession,
         event_date,
+        *,
+        limit: int = 100,
+        after_id: int = 0,
 ):
     """
     获取「当天尚未被合并的新事件」
@@ -206,7 +215,10 @@ async def get_new_events(
         .where(
             news_event.c.event_date == event_date,
             news_event.c.merge_at.is_(None),
+            news_event.c.id > after_id,
             )
+        .order_by(asc(news_event.c.id))
+        .limit(limit)
     )
 
     result = await session.execute(stmt)
@@ -217,6 +229,8 @@ async def get_candidate_parent_events(
         session: AsyncSession,
         current_event_date,
         lookback_days: int = 2,
+        *,
+        limit: int = 500,
 ):
     """
     获取历史主事件候选（只允许 root event）
@@ -228,7 +242,8 @@ async def get_candidate_parent_events(
             news_event.c.event_date >= current_event_date - timedelta(days=lookback_days),
             news_event.c.event_date < current_event_date,
             )
-        .order_by(news_event.c.event_date.desc())
+        .order_by(news_event.c.event_date.desc(), news_event.c.id.desc())
+        .limit(limit)
     )
     result = await session.execute(stmt)
     return result.mappings().all()
@@ -381,9 +396,25 @@ async def get_news_event_by_id(
     return result.mappings().one_or_none()
 
 
+async def count_news_items_by_event(
+        session: AsyncSession,
+        event_id: int,
+):
+    stmt = (
+        select(func.count())
+        .select_from(news_event_item)
+        .where(news_event_item.c.event_id == event_id)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one()
+
+
 async def list_news_items_by_event(
         session: AsyncSession,
         event_id: int,
+        *,
+        limit: int = 20,
+        offset: int = 0,
 ):
     stmt = (
         select(
@@ -402,6 +433,8 @@ async def list_news_items_by_event(
             asc(news_item.c.published_at),
             asc(news_item.c.id),
         )
+        .limit(limit)
+        .offset(offset)
     )
 
     result = await session.execute(stmt)
