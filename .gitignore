@@ -226,3 +226,4 @@ cython_debug/
 .idea/
 static/wordclouds/
 postgres/data
+.claude/
