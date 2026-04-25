@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from sqlalchemy import select, desc, asc, update, func, cast, Float
+from sqlalchemy import select, desc, asc, update, func, cast, Float, literal
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,8 @@ async def step1_insert_news_event(session: AsyncSession) -> None:
             news_item.c.published_at.label("event_date"),
             news_item.c.cluster_id.label("cluster_id"),
             func.count().label("news_count"),
+            literal("", type_=news_event.c.title.type).label("title"),
+            literal("", type_=news_event.c.summary.type).label("summary"),
         )
         .where(news_item.c.cluster_id.is_not(None))
         .group_by(
@@ -31,7 +33,7 @@ async def step1_insert_news_event(session: AsyncSession) -> None:
     stmt = (
         insert(news_event)
         .from_select(
-            ["event_date", "cluster_id", "news_count"],
+            ["event_date", "cluster_id", "news_count", "title", "summary"],
             subq,
         )
         .on_conflict_do_nothing()
@@ -77,7 +79,7 @@ async def step3_fill_event_title_and_summary(
     """
     为 news_event 回填 title / summary
     规则：选事件中最早发布的新闻
-    只处理 title 为空的事件
+    只处理 title 为空或占位值的事件
     """
 
     # 子查询：每个 event 选一条代表新闻
@@ -93,7 +95,10 @@ async def step3_fill_event_title_and_summary(
             .join(news_event_item, news_event.c.id == news_event_item.c.event_id)
             .join(news_item, news_event_item.c.news_id == news_item.c.id)
         )
-        .where(news_event.c.title.is_(None))
+        .where(
+            (news_event.c.title.is_(None))
+            | (news_event.c.title == "")
+        )
         .order_by(
             news_event.c.id,
             news_item.c.published_at.asc(),

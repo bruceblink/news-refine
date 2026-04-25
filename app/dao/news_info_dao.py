@@ -4,7 +4,7 @@ from sqlalchemy import select, and_, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import AsyncSessionLocal
-from app.models import news_item, news_info
+from app.models import news_info
 
 
 async def fetch_news_info_rows(
@@ -36,9 +36,9 @@ async def fetch_news_info_rows(
         conditions = [news_info.c.extracted == False]  # ⭐ 新闻未提取
 
         if start_date:
-            conditions.append(news_info.c.published_at >= start_date)
+            conditions.append(news_info.c.news_date >= start_date)
         if end_date:
-            conditions.append(news_info.c.published_at <= end_date)
+            conditions.append(news_info.c.news_date <= end_date)
 
         stmt = stmt.where(and_(*conditions))
         stmt = stmt.order_by(news_info.c.created_at.desc()).limit(limit)
@@ -106,10 +106,10 @@ async def fetch_news_info_by_id(news_info_id: str) -> list[dict]:
             )
         )
 
-        conditions = [news_item.c.id == news_info_id]
+        conditions = [news_info.c.id == news_info_id]
 
         stmt = stmt.where(and_(*conditions))
-        stmt = stmt.order_by(news_item.c.created_at.desc()).limit(1)
+        stmt = stmt.order_by(news_info.c.created_at.desc()).limit(1)
 
         result = await session.execute(stmt)
         rows = result.mappings().all()

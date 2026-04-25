@@ -20,18 +20,26 @@ class NewsDetailResponse(BaseModel):
 
 
 @router.get("/{news_id}", response_model=NewsDetailResponse)
-async def get_news_detail(news_id: str):
+async def get_news_detail(news_id: int):
     item = await fetch_news_item_by_id(news_id)
     if item is None:
         raise HTTPException(status_code=404, detail="新闻不存在")
-    return item
+    return {
+        "id": item["id"],
+        "item_id": str(item["news_info_id"]) if item.get("news_info_id") is not None else None,
+        "title": item["title"],
+        "url": item["url"],
+        "source": item["source"],
+        "published_at": item["published_at"],
+        "content": item["content"],
+    }
 
 
 class RelatedNewsItem(BaseModel):
-    id: str
+    id: int
     title: str
     url: str
-    source: str
+    source: str | None
     published_at: str | None
     score: float
 
@@ -43,7 +51,7 @@ class RelatedNewsResponse(BaseModel):
 
 @router.get("/{news_id}/related", response_model=RelatedNewsResponse)
 async def get_related_news(
-        news_id: str = Path(..., description="目标新闻 ID"),
+        news_id: int = Path(..., description="目标新闻 ID"),
         limit: int = Query(5, ge=1, le=50, description="返回相关推荐数量")
 ):
     async with AsyncSessionLocal() as session:

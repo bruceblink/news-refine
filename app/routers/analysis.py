@@ -232,7 +232,7 @@ async def wordcloud(params: WordcloudQuery = Depends()):
 
 
 @router.post("/merge_event", summary="合并新闻event", response_model=StatusResponse)
-async def merge_cross_day_news_events( days: int = 2,):
+async def merge_cross_day_news_events(days: int = Query(2, ge=1, le=30)):
     """
      合并最近 N 天的事件（默认 2 天）
     :return:
