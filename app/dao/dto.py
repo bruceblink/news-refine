@@ -1,7 +1,7 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Iterator
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class RowModel(BaseModel):
@@ -38,6 +38,13 @@ class NewsItemDTO(RowModel):
     published_at: str | None
     score: float
 
+    @field_validator("published_at", mode="before")
+    @classmethod
+    def _published_at_to_str(cls, v):
+        if isinstance(v, (date, datetime)):
+            return v.isoformat()
+        return v
+
 
 class NewsInfoRowDTO(RowModel):
     id: int
@@ -58,6 +65,13 @@ class NewsInfoDetailDTO(RowModel):
     extracted: bool | None
     error: str | None
 
+    @field_validator("news_date", mode="before")
+    @classmethod
+    def _news_date_to_str(cls, v):
+        if isinstance(v, (date, datetime)):
+            return v.isoformat()
+        return v
+
 
 class NewsItemExtractDTO(RowModel):
     id: int
@@ -66,6 +80,13 @@ class NewsItemExtractDTO(RowModel):
     published_at: str | None
     source: str | None
     content: str | None
+
+    @field_validator("published_at", mode="before")
+    @classmethod
+    def _published_at_to_str(cls, v):
+        if isinstance(v, (date, datetime)):
+            return v.isoformat()
+        return v
 
 
 class NewsItemDetailDTO(RowModel):
@@ -76,6 +97,13 @@ class NewsItemDetailDTO(RowModel):
     published_at: str | None
     source: str | None
     content: str | None
+
+    @field_validator("published_at", mode="before")
+    @classmethod
+    def _published_at_to_str(cls, v):
+        if isinstance(v, (date, datetime)):
+            return v.isoformat()
+        return v
 
 
 class NewsEventDTO(RowModel):
@@ -123,6 +151,13 @@ class TopNewsItemDTO(RowModel):
     source: str | None
     published_at: str | None
     url: str | None
+
+    @field_validator("published_at", mode="before")
+    @classmethod
+    def _published_at_to_str(cls, v):
+        if isinstance(v, (date, datetime)):
+            return v.isoformat()
+        return v
 
 
 class DayTrendKeywordDTO(RowModel):

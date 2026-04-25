@@ -58,19 +58,9 @@ async def fetch_news_item_by_keywords(
             .order_by(score_subq.c.score.desc(), news_item.c.id.asc())
         )
 
-        rows = (await session.execute(stmt)).all()
+        rows = (await session.execute(stmt)).mappings().all()
 
-        return [
-            NewsItemDTO(
-                id=r.id,
-                title=r.title,
-                url=r.url,
-                source=r.source,
-                published_at=r.published_at.isoformat() if r.published_at else None,
-                score=float(r.score or 0),
-            )
-            for r in rows
-        ]
+        return [NewsItemDTO.model_validate(r) for r in rows]
 
 
 async def fetch_news_item_rows_not_extracted(
@@ -112,17 +102,7 @@ async def fetch_news_item_rows_not_extracted(
         result = await session.execute(stmt)
         rows = result.mappings().all()
 
-        return [
-            NewsItemExtractDTO(
-                id=r["id"],
-                title=r["title"],
-                url=r["url"],
-                published_at=r["published_at"].isoformat() if r["published_at"] else None,
-                source=r["source"],
-                content=r["content"],
-            )
-            for r in rows
-        ]
+        return [NewsItemExtractDTO.model_validate(r) for r in rows]
 
 
 async def update_news_item_extracted_state(session: AsyncSession, items: list[dict]) -> None:
@@ -179,15 +159,7 @@ async def fetch_news_item_by_id(news_id: int) -> NewsItemDetailDTO | None:
         if row is None:
             return None
 
-        return NewsItemDetailDTO(
-            id=row["id"],
-            news_info_id=row["news_info_id"],
-            title=row["title"],
-            url=row["url"],
-            published_at=row["published_at"].isoformat() if row["published_at"] else None,
-            source=row["source"],
-            content=row["content"],
-        )
+        return NewsItemDetailDTO.model_validate(row)
 
 
 async def count_news_by_keywords(keywords: list[str]) -> int:

@@ -235,7 +235,7 @@ async def get_new_events(
     )
 
     result = await session.execute(stmt)
-    return [NewsEventRecordDTO(**r) for r in result.mappings().all()]
+    return [NewsEventRecordDTO.model_validate(r) for r in result.mappings().all()]
 
 
 async def get_candidate_parent_events(
@@ -259,7 +259,7 @@ async def get_candidate_parent_events(
         .limit(limit)
     )
     result = await session.execute(stmt)
-    return [NewsEventRecordDTO(**r) for r in result.mappings().all()]
+    return [NewsEventRecordDTO.model_validate(r) for r in result.mappings().all()]
 
 
 def _find_parent_event(
@@ -363,7 +363,7 @@ async def query_news_events(
     stmt = stmt.limit(page_size).offset(offset)
 
     result = await session.execute(stmt)
-    return [NewsEventDTO(**r) for r in result.mappings().all()]
+    return [NewsEventDTO.model_validate(r) for r in result.mappings().all()]
 
 
 async def count_news_events(
@@ -407,7 +407,7 @@ async def get_news_event_by_id(
 
     result = await session.execute(stmt)
     row = result.mappings().one_or_none()
-    return NewsEventDTO(**row) if row else None
+    return NewsEventDTO.model_validate(row) if row else None
 
 
 async def count_news_items_by_event(
@@ -452,4 +452,4 @@ async def list_news_items_by_event(
     )
 
     result = await session.execute(stmt)
-    return [NewsItemInEventDTO(**r) for r in result.mappings().all()]
+    return [NewsItemInEventDTO.model_validate(r) for r in result.mappings().all()]

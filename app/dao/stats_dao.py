@@ -48,7 +48,7 @@ async def fetch_hot_events(
     )
 
     result = await session.execute(stmt)
-    return [HotEventDTO(**r) for r in result.mappings().all()]
+    return [HotEventDTO.model_validate(r) for r in result.mappings().all()]
 
 
 async def count_hot_events(
@@ -115,15 +115,7 @@ async def fetch_top_news_by_event_ids(
     grouped: dict[int, list[TopNewsItemDTO]] = defaultdict(list)
     for r in rows:
         grouped[r["event_id"]].append(
-            TopNewsItemDTO(
-                id=r["id"],
-                title=r["title"],
-                source=r["source"],
-                url=r["url"],
-                published_at=(
-                    r["published_at"].isoformat() if r["published_at"] else None
-                ),
-            )
+            TopNewsItemDTO.model_validate(r)
         )
     return dict(grouped)
 
@@ -171,30 +163,24 @@ async def fetch_trending_keywords(
 
     stmt = (
         select(
-            ranked_subq.c.pub_date,
-            ranked_subq.c.keyword,
-            ranked_subq.c.total_weight,
-            ranked_subq.c.doc_count,
+            ranked_subq.c.pub_date.label("date"),
+            ranked_subq.c.keyword.label("keyword"),
+            ranked_subq.c.total_weight.label("weight"),
+            ranked_subq.c.doc_count.label("count"),
         )
         .where(ranked_subq.c.rn <= top_k)
         .order_by(ranked_subq.c.pub_date.desc(), ranked_subq.c.total_weight.desc())
     )
 
-    rows = (await session.execute(stmt)).all()
+    rows = (await session.execute(stmt)).mappings().all()
 
     grouped: dict[str, list[DayTrendKeywordDTO]] = defaultdict(list)
     for r in rows:
-        d = r.pub_date.isoformat() if r.pub_date else "unknown"
-        grouped[d].append(
-            DayTrendKeywordDTO(
-                keyword=r.keyword,
-                weight=round(float(r.total_weight), 4) if r.total_weight else 0.0,
-                count=r.doc_count,
-            )
-        )
+        d = r["date"].isoformat() if r["date"] else "unknown"
+        grouped[d].append(DayTrendKeywordDTO.model_validate(r))
 
     return [
-        DayTrendDTO(date=d, keywords=grouped[d])
+        DayTrendDTO.model_validate({"date": d, "keywords": grouped[d]})
         for d in sorted(grouped.keys(), reverse=True)
     ]
 

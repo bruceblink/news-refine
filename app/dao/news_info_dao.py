@@ -47,18 +47,7 @@ async def fetch_news_info_rows(
         result = await session.execute(stmt)
         rows = result.mappings().all()
 
-        return [
-            NewsInfoRowDTO(
-                id=r["id"],
-                name=r["name"],
-                news_from=r["news_from"],
-                news_date=r["news_date"],
-                data=r["data"],
-                extracted=r["extracted"],
-                error=r["error"],
-            )
-            for r in rows
-        ]
+        return [NewsInfoRowDTO.model_validate(r) for r in rows]
 
 
 async def update_news_info_extracted_state(session: AsyncSession, items: list[dict]) -> None:
@@ -115,15 +104,4 @@ async def fetch_news_info_by_id(news_info_id: str) -> list[NewsInfoDetailDTO]:
         result = await session.execute(stmt)
         rows = result.mappings().all()
 
-        return [
-            NewsInfoDetailDTO(
-                id=r["id"],
-                name=r["name"],
-                news_from=r["news_from"],
-                news_date=r["news_date"].isoformat() if r["news_date"] else None,
-                data=r["data"],
-                extracted=r["extracted"],
-                error=r["error"],
-            )
-            for r in rows
-        ]
+        return [NewsInfoDetailDTO.model_validate(r) for r in rows]
