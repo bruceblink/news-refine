@@ -139,10 +139,10 @@ async def fetch_trending_keywords(
     """
     since = date.today() - timedelta(days=days - 1)
 
-    stmt = (
+    agg_subq = (
         select(
             news_item.c.published_at.label("pub_date"),
-            news_keywords.c.keyword,
+            news_keywords.c.keyword.label("keyword"),
             func.sum(news_keywords.c.weight).label("total_weight"),
             func.count().label("doc_count"),
         )
@@ -151,10 +151,32 @@ async def fetch_trending_keywords(
         )
         .where(news_item.c.published_at >= since)
         .group_by(news_item.c.published_at, news_keywords.c.keyword)
-        .order_by(
-            desc(news_item.c.published_at),
-            desc(func.sum(news_keywords.c.weight)),
+        .subquery()
+    )
+
+    ranked_subq = (
+        select(
+            agg_subq.c.pub_date,
+            agg_subq.c.keyword,
+            agg_subq.c.total_weight,
+            agg_subq.c.doc_count,
+            func.row_number().over(
+                partition_by=agg_subq.c.pub_date,
+                order_by=agg_subq.c.total_weight.desc(),
+            ).label("rn"),
         )
+        .subquery()
+    )
+
+    stmt = (
+        select(
+            ranked_subq.c.pub_date,
+            ranked_subq.c.keyword,
+            ranked_subq.c.total_weight,
+            ranked_subq.c.doc_count,
+        )
+        .where(ranked_subq.c.rn <= top_k)
+        .order_by(ranked_subq.c.pub_date.desc(), ranked_subq.c.total_weight.desc())
     )
 
     rows = (await session.execute(stmt)).all()
@@ -171,6 +193,6 @@ async def fetch_trending_keywords(
         )
 
     return [
-        {"date": d, "keywords": grouped[d][:top_k]}
+        {"date": d, "keywords": grouped[d]}
         for d in sorted(grouped.keys(), reverse=True)
     ]
