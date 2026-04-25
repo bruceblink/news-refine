@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     WORDCLOUD_DIR: str = os.getenv(
         "WORDCLOUD_DIR", os.path.join(STATIC_DIR, "wordclouds")
     )
-    TFIDF_MAX_FEATURES: int = int(os.getenv("TFIDF_MAX_FEATURES", "2000"))
+    TFIDF_MAX_FEATURES: int = int(os.getenv("TFIDF_MAX_FEATURES", "1000"))
     # 项目根目录
     BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     # 跨域请求白名单

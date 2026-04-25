@@ -6,6 +6,12 @@ WORKDIR /app
 # 设置模型存放路径的环境变量（构建时和运行时都会生效）
 # 建议放在 /app 目录下，方便管理
 ENV PKUSEG_HOME=/app/pkuseg_data
+ENV OMP_NUM_THREADS=1
+ENV OPENBLAS_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
+ENV NUMEXPR_NUM_THREADS=1
+ENV VECLIB_MAXIMUM_THREADS=1
+ENV BLIS_NUM_THREADS=1
 
 # 1. 复制依赖声明文件
 COPY pyproject.toml ./
@@ -28,4 +34,4 @@ COPY . .
 EXPOSE 8001
 ENV APP_ENV=production
 # 5. 启动命令
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001}"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001} --workers 1 --limit-concurrency 8 --backlog 64 --timeout-keep-alive 10"]

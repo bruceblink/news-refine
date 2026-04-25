@@ -34,8 +34,8 @@ engine = create_async_engine(
     # 连接池配置：防止连接超时被服务器断开
     pool_recycle=300,           # 秒，连接在池中存活时间，应小于数据库的wait_timeout
     pool_pre_ping=True,         # 每次从池中取连接前执行简单SQL检查，确保连接有效
-    pool_size=2,                # 连接池中保持的常驻连接数（Render 512MB 限制，保持小值）
-    max_overflow=3,             # 超出pool_size后最多可创建的连接数
+    pool_size=1,                # 连接池中保持的常驻连接数（Render 小内存实例优先稳定）
+    max_overflow=1,             # 超出pool_size后最多可创建的连接数
     pool_timeout=30,            # 秒，从池中获取连接的超时时间
     connect_args=connect_args
 )
