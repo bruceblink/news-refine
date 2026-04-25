@@ -150,7 +150,7 @@ async def update_news_item_extracted_state(session: AsyncSession, items: list[di
     await session.execute(stmt)
 
 
-async def fetch_news_item_by_id(news_id: str) -> dict | None:
+async def fetch_news_item_by_id(news_id: int) -> dict | None:
     """
      根据新闻id查询新闻详情
     :param news_id:
