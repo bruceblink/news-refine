@@ -1,9 +1,10 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from sqlalchemy import select, desc, asc, update, func, cast, Float, literal
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dao.dto import NewsEventDTO, NewsEventRecordDTO, NewsItemInEventDTO
 from app.models import news_item, news_event, news_event_item
 from app.utils import is_same_event
 
@@ -211,23 +212,30 @@ async def get_new_events(
         *,
         limit: int = 100,
         after_id: int = 0,
-):
-    """
-    获取「当天尚未被合并的新事件」
-    """
+) -> list[NewsEventRecordDTO]:
     stmt = (
-        select(news_event)
+        select(
+            news_event.c.id,
+            news_event.c.event_date,
+            news_event.c.cluster_id,
+            news_event.c.title,
+            news_event.c.summary,
+            news_event.c.news_count,
+            news_event.c.score,
+            news_event.c.status,
+            news_event.c.parent_event_id,
+        )
         .where(
             news_event.c.event_date == event_date,
             news_event.c.merge_at.is_(None),
             news_event.c.id > after_id,
-            )
-        .order_by(asc(news_event.c.id))
+        )
+        .order_by(news_event.c.id.asc())
         .limit(limit)
     )
 
     result = await session.execute(stmt)
-    return result.mappings().all()
+    return [NewsEventRecordDTO(**r) for r in result.mappings().all()]
 
 
 async def get_candidate_parent_events(
@@ -236,7 +244,7 @@ async def get_candidate_parent_events(
         lookback_days: int = 2,
         *,
         limit: int = 500,
-):
+) -> list[NewsEventRecordDTO]:
     """
     获取历史主事件候选（只允许 root event）
     """
@@ -251,7 +259,7 @@ async def get_candidate_parent_events(
         .limit(limit)
     )
     result = await session.execute(stmt)
-    return result.mappings().all()
+    return [NewsEventRecordDTO(**r) for r in result.mappings().all()]
 
 
 def _find_parent_event(
@@ -317,7 +325,7 @@ async def query_news_events(
         status: int | None = None,
         start_date=None,
         end_date=None,
-):
+) -> list[NewsEventDTO]:
     offset = (page - 1) * page_size
 
     stmt = select(
@@ -355,7 +363,7 @@ async def query_news_events(
     stmt = stmt.limit(page_size).offset(offset)
 
     result = await session.execute(stmt)
-    return result.mappings().all()
+    return [NewsEventDTO(**r) for r in result.mappings().all()]
 
 
 async def count_news_events(
@@ -383,7 +391,7 @@ async def count_news_events(
 async def get_news_event_by_id(
         session: AsyncSession,
         event_id: int,
-):
+) -> NewsEventDTO | None:
     stmt = (
         select(
             news_event.c.id,
@@ -398,7 +406,8 @@ async def get_news_event_by_id(
     )
 
     result = await session.execute(stmt)
-    return result.mappings().one_or_none()
+    row = result.mappings().one_or_none()
+    return NewsEventDTO(**row) if row else None
 
 
 async def count_news_items_by_event(
@@ -420,7 +429,7 @@ async def list_news_items_by_event(
         *,
         limit: int = 20,
         offset: int = 0,
-):
+) -> list[NewsItemInEventDTO]:
     stmt = (
         select(
             news_item.c.id,
@@ -443,4 +452,4 @@ async def list_news_items_by_event(
     )
 
     result = await session.execute(stmt)
-    return result.mappings().all()
+    return [NewsItemInEventDTO(**r) for r in result.mappings().all()]

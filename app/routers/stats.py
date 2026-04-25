@@ -99,7 +99,7 @@ async def hot_events(
             summary=e["summary"],
             news_count=e["news_count"],
             score=e["score"],
-            top_news=[TopNewsItem(**n) for n in top_news_map.get(e["id"], [])],
+            top_news=[TopNewsItem(**n.model_dump()) for n in top_news_map.get(e["id"], [])],
         )
         for e in events
     ]
@@ -122,6 +122,6 @@ async def keyword_trend(
         trends = await fetch_trending_keywords(session, days=days, top_k=top_k)
 
     return TrendResponse(
-        trends=[DayTrend(**t) for t in trends],
+        trends=[DayTrend(**t.model_dump()) for t in trends],
         days=days,
     )

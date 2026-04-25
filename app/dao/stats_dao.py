@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from sqlalchemy import select, func, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dao.dto import HotEventDTO, TopNewsItemDTO, DayTrendDTO, DayTrendKeywordDTO
 from app.models import news_event, news_event_item, news_item, news_keywords
 
 
@@ -14,7 +15,7 @@ async def fetch_hot_events(
     end_date: date | None = None,
     page: int = 1,
     page_size: int = 20,
-) -> list:
+) -> list[HotEventDTO]:
     """
     查询热点事件列表（只返回根事件，按 score 降序）
     """
@@ -47,7 +48,7 @@ async def fetch_hot_events(
     )
 
     result = await session.execute(stmt)
-    return result.mappings().all()
+    return [HotEventDTO(**r) for r in result.mappings().all()]
 
 
 async def count_hot_events(
@@ -77,7 +78,7 @@ async def fetch_top_news_by_event_ids(
     session: AsyncSession,
     event_ids: list[int],
     top_n: int = 3,
-) -> dict[int, list[dict]]:
+) -> dict[int, list[TopNewsItemDTO]]:
     """
     批量获取多个事件下的 top N 新闻（按 news_item.id 升序取前 N 条）
     使用 ROW_NUMBER() 窗口函数一次查询完成。
@@ -111,18 +112,18 @@ async def fetch_top_news_by_event_ids(
     result = await session.execute(stmt)
     rows = result.mappings().all()
 
-    grouped: dict[int, list[dict]] = defaultdict(list)
+    grouped: dict[int, list[TopNewsItemDTO]] = defaultdict(list)
     for r in rows:
         grouped[r["event_id"]].append(
-            {
-                "id": r["id"],
-                "title": r["title"],
-                "source": r["source"],
-                "url": r["url"],
-                "published_at": (
+            TopNewsItemDTO(
+                id=r["id"],
+                title=r["title"],
+                source=r["source"],
+                url=r["url"],
+                published_at=(
                     r["published_at"].isoformat() if r["published_at"] else None
                 ),
-            }
+            )
         )
     return dict(grouped)
 
@@ -132,7 +133,7 @@ async def fetch_trending_keywords(
     *,
     days: int = 7,
     top_k: int = 10,
-) -> list[dict]:
+) -> list[DayTrendDTO]:
     """
     返回最近 N 天每天热门关键词（按关键词权重合计降序）。
     结果格式：[{"date": "YYYY-MM-DD", "keywords": [{"keyword", "weight", "count"}]}]
@@ -181,18 +182,19 @@ async def fetch_trending_keywords(
 
     rows = (await session.execute(stmt)).all()
 
-    grouped: dict[str, list[dict]] = defaultdict(list)
+    grouped: dict[str, list[DayTrendKeywordDTO]] = defaultdict(list)
     for r in rows:
         d = r.pub_date.isoformat() if r.pub_date else "unknown"
         grouped[d].append(
-            {
-                "keyword": r.keyword,
-                "weight": round(float(r.total_weight), 4) if r.total_weight else 0.0,
-                "count": r.doc_count,
-            }
+            DayTrendKeywordDTO(
+                keyword=r.keyword,
+                weight=round(float(r.total_weight), 4) if r.total_weight else 0.0,
+                count=r.doc_count,
+            )
         )
 
     return [
-        {"date": d, "keywords": grouped[d]}
+        DayTrendDTO(date=d, keywords=grouped[d])
         for d in sorted(grouped.keys(), reverse=True)
     ]
+

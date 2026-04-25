@@ -5,6 +5,7 @@ from sqlalchemy import select, and_, update, func, or_, literal_column
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dao.dto import NewsItemDTO, NewsItemExtractDTO, NewsItemDetailDTO
 from app.db import AsyncSessionLocal
 from app.models import news_item, news_keywords
 
@@ -13,7 +14,7 @@ async def fetch_news_item_by_keywords(
         keywords: list[str],
         limit: int = 20,
         offset: int = 0,
-) -> list[dict]:
+) -> list[NewsItemDTO]:
     """
      通过关键字查询所有新闻
     :param keywords: 关键字查询条件
@@ -60,14 +61,14 @@ async def fetch_news_item_by_keywords(
         rows = (await session.execute(stmt)).all()
 
         return [
-            {
-                "id": r.id,
-                "title": r.title,
-                "url": r.url,
-                "source": r.source,
-                "published_at": r.published_at.isoformat() if r.published_at else None,
-                "score": float(r.score or 0),
-            }
+            NewsItemDTO(
+                id=r.id,
+                title=r.title,
+                url=r.url,
+                source=r.source,
+                published_at=r.published_at.isoformat() if r.published_at else None,
+                score=float(r.score or 0),
+            )
             for r in rows
         ]
 
@@ -76,7 +77,7 @@ async def fetch_news_item_rows_not_extracted(
         start_date: date | None,
         end_date: date | None,
         limit: int | None = 1000
-) -> list[dict]:
+) -> list[NewsItemExtractDTO]:
     """
      查询待提取关键字的新闻item
     :param start_date:
@@ -112,14 +113,14 @@ async def fetch_news_item_rows_not_extracted(
         rows = result.mappings().all()
 
         return [
-            {
-                "id": r["id"],
-                "title": r["title"],
-                "url": r["url"],
-                "published_at": r["published_at"].isoformat() if r["published_at"] else None,
-                "source": r["source"],
-                "content": r["content"],
-            }
+            NewsItemExtractDTO(
+                id=r["id"],
+                title=r["title"],
+                url=r["url"],
+                published_at=r["published_at"].isoformat() if r["published_at"] else None,
+                source=r["source"],
+                content=r["content"],
+            )
             for r in rows
         ]
 
@@ -150,7 +151,7 @@ async def update_news_item_extracted_state(session: AsyncSession, items: list[di
     await session.execute(stmt)
 
 
-async def fetch_news_item_by_id(news_id: int) -> dict | None:
+async def fetch_news_item_by_id(news_id: int) -> NewsItemDetailDTO | None:
     """
      根据新闻id查询新闻详情
     :param news_id:
@@ -178,15 +179,15 @@ async def fetch_news_item_by_id(news_id: int) -> dict | None:
         if row is None:
             return None
 
-        return {
-            "id": row["id"],
-            "news_info_id": row["news_info_id"],
-            "title": row["title"],
-            "url": row["url"],
-            "published_at": row["published_at"].isoformat() if row["published_at"] else None,
-            "source": row["source"],
-            "content": row["content"],
-        }
+        return NewsItemDetailDTO(
+            id=row["id"],
+            news_info_id=row["news_info_id"],
+            title=row["title"],
+            url=row["url"],
+            published_at=row["published_at"].isoformat() if row["published_at"] else None,
+            source=row["source"],
+            content=row["content"],
+        )
 
 
 async def count_news_by_keywords(keywords: list[str]) -> int:

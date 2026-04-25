@@ -3,6 +3,7 @@ from datetime import date
 from sqlalchemy import select, and_, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dao.dto import NewsInfoRowDTO, NewsInfoDetailDTO
 from app.db import AsyncSessionLocal
 from app.models import news_info
 
@@ -11,7 +12,7 @@ async def fetch_news_info_rows(
         start_date: date | None,
         end_date: date | None,
         limit: int | None = 1000
-) -> list[dict]:
+) -> list[NewsInfoRowDTO]:
     """
      查询news_info
     :param start_date:
@@ -47,15 +48,15 @@ async def fetch_news_info_rows(
         rows = result.mappings().all()
 
         return [
-            {
-                "id": r["id"],
-                "name": r["name"],
-                "news_from": r["news_from"],
-                "news_date": r["news_date"],
-                "data": r["data"],
-                "extracted": r["extracted"],
-                "error": r["error"],
-            }
+            NewsInfoRowDTO(
+                id=r["id"],
+                name=r["name"],
+                news_from=r["news_from"],
+                news_date=r["news_date"],
+                data=r["data"],
+                extracted=r["extracted"],
+                error=r["error"],
+            )
             for r in rows
         ]
 
@@ -86,7 +87,7 @@ async def update_news_info_extracted_state(session: AsyncSession, items: list[di
     await session.execute(stmt)
 
 
-async def fetch_news_info_by_id(news_info_id: str) -> list[dict]:
+async def fetch_news_info_by_id(news_info_id: str) -> list[NewsInfoDetailDTO]:
     """
      根据新闻id查询新闻详情
     :param news_info_id:
@@ -115,14 +116,14 @@ async def fetch_news_info_by_id(news_info_id: str) -> list[dict]:
         rows = result.mappings().all()
 
         return [
-            {
-                "id": r["id"],
-                "name": r["name"],
-                "news_from": r["news_from"],
-                "news_date": r["news_date"].isoformat() if r["news_date"] else None,
-                "data": r["data"],
-                "extracted": r["extracted"],
-                "error": r["error"],
-            }
+            NewsInfoDetailDTO(
+                id=r["id"],
+                name=r["name"],
+                news_from=r["news_from"],
+                news_date=r["news_date"].isoformat() if r["news_date"] else None,
+                data=r["data"],
+                extracted=r["extracted"],
+                error=r["error"],
+            )
             for r in rows
         ]
