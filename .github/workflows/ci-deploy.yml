@@ -46,20 +46,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[test]"
 
-  #      # 4. 运行测试并生成覆盖率
-  #      - name: Run tests with pytest
-  #        run: |
-  #          pytest tests/ -v --cov=wordfreq_cn --cov-report=xml --cov-report=html
-  #
-  #      # 5. 上传覆盖率报告
-  #      - name: Upload coverage reports
-  #        uses: actions/upload-artifact@v4
-  #        with:
-  #          name: coverage-report
-  #          path: |
-  #            htmlcov/
-  #            coverage.xml
-  #          retention-days: 7
+      # 4. 运行测试
+      - name: Run tests with pytest
+        run: |
+          pytest -v
+
 
   build-and-publish:
     name: Build, Publish Package & Release
