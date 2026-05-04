@@ -12,7 +12,14 @@ from app.core.rate_limit import limiter
 from app.middleware import JWTMiddleware
 from app.routers import analysis, search, news, stats
 
-app = FastAPI(title="News Refine API")
+is_production = settings.ENVIRONMENT.lower() == "production"
+
+app = FastAPI(
+    title="News Refine API",
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json",
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -43,7 +50,7 @@ app.include_router(stats.router, tags=["统计模块"])
 
 @app.get("/")
 def root():
-    return RedirectResponse(url="/docs")
+    return RedirectResponse(url="/health" if is_production else "/docs")
 
 @app.get("/health")
 async def health():
