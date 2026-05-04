@@ -1,9 +1,10 @@
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Query, HTTPException, Depends
+from fastapi import APIRouter, Query, HTTPException, Depends, Request
 from pydantic import BaseModel, Field, field_validator
 
 from ..auth import require_permission, swagger_auth
+from ..core.rate_limit import limiter
 from ..dao.news_info_dao import fetch_news_info_rows
 from ..dao.news_item_dao import fetch_news_item_rows_not_extracted
 from ..services import extract_keywords_task
@@ -77,7 +78,8 @@ class BaseQuery(BaseModel):
 
 
 @router.post("/extract_news_item", summary="提取新闻item", response_model=StatusResponse)
-async def extract_news_item(params: BaseQuery):
+@limiter.limit("5/minute")
+async def extract_news_item(request: Request, params: BaseQuery):
     """
      从原始新闻数据中提取news_item
 
@@ -128,7 +130,8 @@ class TFIDFQuery(BaseModel):
 
 
 @router.post("/tfidf", summary="生成 TF-IDF Top N 关键词", response_model=StatusResponse)
-async def extract_tfidf_top_keywords(params: TFIDFQuery):
+@limiter.limit("10/minute")
+async def extract_tfidf_top_keywords(request: Request, params: TFIDFQuery):
     """
      请求计算 TF-IDF Top N 词
 
@@ -149,7 +152,8 @@ async def extract_tfidf_top_keywords(params: TFIDFQuery):
 
 
 @router.post("/extract_news_event", summary="提取新闻event", response_model=StatusResponse)
-async def extract_news_event():
+@limiter.limit("5/minute")
+async def extract_news_event(request: Request):
     """
      执行提取新闻事件的作业
     :return:
@@ -159,7 +163,9 @@ async def extract_news_event():
 
 
 @router.get("/events", dependencies=[Depends(require_permission("event:read"))], response_model=NewsEventListResponse)
+@limiter.limit("20/minute")
 async def get_news_events(
+        request: Request,
         page: int = Query(1, ge=1),
         pageSize: int = Query(20, ge=1, le=100),
         orderBy: str = Query("score"),
@@ -181,7 +187,9 @@ async def get_news_events(
 
 
 @router.get("/events/{event_id}", response_model=NewsEventDetailResponse)
+@limiter.limit("30/minute")
 async def get_event_detail(
+        request: Request,
         event_id: int,
         page: int = Query(1, ge=1),
         pageSize: int = Query(20, ge=1, le=100),
@@ -211,7 +219,8 @@ class WordcloudQuery(BaseModel):
 
 
 @router.get("/wordcloud", summary="生成词云并返回图片 URL 列表", response_model=WordcloudResponse)
-async def wordcloud(params: WordcloudQuery = Depends()):
+@limiter.limit("10/minute")
+async def wordcloud(request: Request, params: WordcloudQuery = Depends()):
     """
     基于指定日期范围内的原始新闻数据生成词云图片。
 
@@ -232,7 +241,8 @@ async def wordcloud(params: WordcloudQuery = Depends()):
 
 
 @router.post("/merge_event", summary="合并新闻event", response_model=StatusResponse)
-async def merge_cross_day_news_events(days: int = Query(2, ge=1, le=30)):
+@limiter.limit("5/minute")
+async def merge_cross_day_news_events(request: Request, days: int = Query(2, ge=1, le=30)):
     """
      合并最近 N 天的事件（默认 2 天）
     :return:

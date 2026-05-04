@@ -1,15 +1,20 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
+from slowapi.extension import _rate_limit_exceeded_handler
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
 from app import settings
+from app.core.rate_limit import limiter
 from app.middleware import JWTMiddleware
 from app.routers import analysis, search, news, stats
 
 app = FastAPI(title="News Refine API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 注册jwt提取的中间件
 app.add_middleware(JWTMiddleware)

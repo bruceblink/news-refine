@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Path, Query, HTTPException
+from fastapi import APIRouter, Path, Query, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select, func
 
+from app.core.rate_limit import limiter
 from app.dao.news_item_dao import fetch_news_item_by_id
 from app.db import AsyncSessionLocal
 from app.models import news_keywords, news_item
@@ -20,7 +21,8 @@ class NewsDetailResponse(BaseModel):
 
 
 @router.get("/{news_id}", response_model=NewsDetailResponse)
-async def get_news_detail(news_id: int):
+@limiter.limit("60/minute")
+async def get_news_detail(request: Request, news_id: int):
     item = await fetch_news_item_by_id(news_id)
     if item is None:
         raise HTTPException(status_code=404, detail="新闻不存在")
@@ -50,7 +52,9 @@ class RelatedNewsResponse(BaseModel):
 
 
 @router.get("/{news_id}/related", response_model=RelatedNewsResponse)
+@limiter.limit("20/minute")
 async def get_related_news(
+        request: Request,
         news_id: int = Path(..., description="目标新闻 ID"),
         limit: int = Query(5, ge=1, le=50, description="返回相关推荐数量")
 ):

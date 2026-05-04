@@ -1,8 +1,9 @@
 from datetime import date
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from pydantic import BaseModel
 
+from ..core.rate_limit import limiter
 from ..dao.stats_dao import (
     fetch_hot_events,
     count_hot_events,
@@ -62,7 +63,9 @@ class TrendResponse(BaseModel):
 # ── 路由 ─────────────────────────────────────────────────────
 
 @router.get("/hot", response_model=HotResponse, summary="热点事件列表")
+@limiter.limit("30/minute")
 async def hot_events(
+    request: Request,
     page: int = Query(1, ge=1),
     pageSize: int = Query(20, ge=1, le=100),
     start_date: date | None = Query(None, description="开始日期 YYYY-MM-DD"),
@@ -108,7 +111,9 @@ async def hot_events(
 
 
 @router.get("/trend", response_model=TrendResponse, summary="关键词趋势")
+@limiter.limit("30/minute")
 async def keyword_trend(
+    request: Request,
     days: int = Query(7, ge=1, le=30, description="趋势天数（最近 N 天）"),
     top_k: int = Query(10, ge=1, le=50, description="每天返回的关键词数"),
 ):

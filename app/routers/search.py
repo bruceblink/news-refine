@@ -1,9 +1,10 @@
 import asyncio
 
 import wordfreq_cn
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from pydantic import BaseModel
 
+from app.core.rate_limit import limiter
 from app.dao import fetch_news_item_by_keywords, count_news_by_keywords
 
 router = APIRouter(prefix="/api/search")
@@ -26,7 +27,9 @@ class SearchResponse(BaseModel):
 
 
 @router.get("/news", response_model=SearchResponse)
+@limiter.limit("30/minute")
 async def search_news(
+        request: Request,
         q: str = Query(..., description="搜索关键词"),
         page: int = Query(1, ge=1, description="页码"),
         pageSize: int = Query(20, ge=1, le=100, description="每页条数"),
