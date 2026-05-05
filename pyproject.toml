@@ -9,7 +9,7 @@ description = "News TimeStream Platform 分析层服务"
 authors = [{ name = "likanug", email = "likanug.g@qq.com" }]
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 
 dependencies = [
     "pydantic>=2.13.2",
