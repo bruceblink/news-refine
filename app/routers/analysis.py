@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Query, HTTPException, Depends, Request
+from fastapi import APIRouter, Query, HTTPException, Depends, Request, Body
 from pydantic import BaseModel, Field, field_validator
 
 from ..auth import require_permission, swagger_auth
@@ -62,14 +62,16 @@ class WordcloudResponse(BaseModel):
 
 
 class BaseQuery(BaseModel):
-    limit: int = Field(30, ge=1, le=100)
-    start_date: date | None = None
-    end_date: date | None = None
+    limit: int = Field(50, ge=1, le=100)
+    start_date: date = Field(default_factory=date.today)
+    end_date: date = Field(default_factory=date.today)
 
     @field_validator("start_date", "end_date", mode="before")
     @classmethod
     def check_date_format(cls, v):
         if v is None:
+            return v
+        if isinstance(v, date):
             return v
         try:
             return date.fromisoformat(v)
@@ -79,7 +81,7 @@ class BaseQuery(BaseModel):
 
 @router.post("/extract_news_item", summary="提取新闻item", response_model=StatusResponse)
 @limiter.limit("5/minute")
-async def extract_news_item(request: Request, params: BaseQuery):
+async def extract_news_item(request: Request, params: BaseQuery = Body(default_factory=BaseQuery)):
     """
      从原始新闻数据中提取news_item
 
@@ -115,13 +117,15 @@ async def extract_news_item(request: Request, params: BaseQuery):
 class TFIDFQuery(BaseModel):
     limit: int = Field(200, ge=1, le=500)
     top_k: int = Field(5, ge=1, le=10)
-    start_date: date | None = None
-    end_date: date | None = None
+    start_date: date = Field(default_factory=date.today)
+    end_date: date = Field(default_factory=date.today)
 
     @field_validator("start_date", "end_date", mode="before")
     @classmethod
     def check_date_format(cls, v):
         if v is None:
+            return v
+        if isinstance(v, date):
             return v
         try:
             return date.fromisoformat(v)
@@ -203,14 +207,16 @@ async def get_event_detail(
 
 # ── 词云接口 ─────────────────────────────────────────────────
 class WordcloudQuery(BaseModel):
-    limit: int = Field(30, ge=1, le=200)
-    start_date: date | None = None
-    end_date: date | None = None
+    limit: int = Field(50, ge=1, le=200)
+    start_date: date = Field(default_factory=date.today)
+    end_date: date = Field(default_factory=date.today)
 
     @field_validator("start_date", "end_date", mode="before")
     @classmethod
     def check_date_format(cls, v):
         if v is None:
+            return v
+        if isinstance(v, date):
             return v
         try:
             return date.fromisoformat(v)
